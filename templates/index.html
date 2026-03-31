@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOSADENT — Asistente Virtual</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #ECE5DD; height: 100vh; display: flex; flex-direction: column; }
+
+        .header {
+            background: #075E54;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar {
+            width: 40px; height: 40px;
+            background: #25D366;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .header-info h1 { font-size: 15px; font-weight: 600; color: white; }
+        .header-info p { font-size: 12px; color: #B2DFDB; }
+        .status { display: flex; align-items: center; gap: 4px; }
+        .status-dot { width: 8px; height: 8px; background: #25D366; border-radius: 50%; }
+
+        .chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+        .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.5; position: relative; }
+        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; text-align: right; }
+
+        .msg-usuario { background: #DCF8C6; align-self: flex-end; border-radius: 8px 8px 0 8px; }
+        .msg-bot { background: white; align-self: flex-start; border-radius: 8px 8px 8px 0; }
+
+        .typing { background: white; align-self: flex-start; border-radius: 8px; padding: 12px 16px; }
+        .typing-dots { display: flex; gap: 4px; }
+        .typing-dots span {
+            width: 8px; height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .bienvenida {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            align-self: center;
+            max-width: 85%;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .bienvenida strong { display: block; font-size: 14px; color: #333; margin-bottom: 4px; }
+
+        .sugerencias { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
+        .sug-btn {
+            background: white;
+            border: 1px solid #25D366;
+            color: #075E54;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .sug-btn:hover { background: #E8F5E9; }
+
+        .input-area {
+            background: #F0F0F0;
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        input {
+            flex: 1;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .btn-enviar {
+            width: 44px; height: 44px;
+            background: #25D366;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .btn-enviar:hover { background: #1DA851; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="avatar">🦷</div>
+    <div class="header-info">
+        <h1>MOSADENT</h1>
+        <div class="status">
+            <div class="status-dot"></div>
+            <p>Asistente virtual • En línea</p>
+        </div>
+    </div>
+</div>
+
+<div class="chat" id="chat">
+    <div class="bienvenida">
+        <strong>🦷 Bienvenido a MOSADENT</strong>
+        Consultorio dental en Guadalupe, N.L.<br>
+        Lunes a Domingo · 10:00 AM – 7:00 PM
+    </div>
+
+    <div class="msg msg-bot">
+        ¡Hola! Soy el asistente virtual de MOSADENT 😊 ¿En qué puedo ayudarte hoy?
+        <div class="msg-time">ahora</div>
+    </div>
+
+    <div class="sugerencias" id="sugerencias">
+        <button class="sug-btn" onclick="enviarSugerencia('Quiero agendar una cita')">📅 Agendar cita</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Qué servicios ofrecen?')">🦷 Servicios</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Cuál es el horario?')">🕐 Horario</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Dónde están ubicados?')">📍 Ubicación</button>
+    </div>
+</div>
+
+<div class="input-area">
+    <input
+        type="text"
+        id="input"
+        placeholder="Escribe un mensaje..."
+        onkeypress="if(event.key==='Enter') enviar()"
+    />
+    <button class="btn-enviar" onclick="enviar()">➤</button>
+</div>
+
+<script>
+    const sessionId = "demo-" + Date.now()
+
+    function horaActual() {
+        const now = new Date()
+        return now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0")
+    }
+
+    function agregarMensaje(texto, tipo) {
+        const chat = document.getElementById("chat")
+        const div = document.createElement("div")
+        div.className = `msg msg-${tipo}`
+        div.innerHTML = `${texto
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+    .replace(/1️⃣|2️⃣|3️⃣|4️⃣/g, m => m)
+}<div class="msg-time">${horaActual()}</div>`
+        chat.appendChild(div)
+        chat.scrollTop = chat.scrollHeight
+    }
+
+    function mostrarTyping() {
+        const chat = document.getElementById("chat")
+        const div = document.createElement("div")
+        div.className = "typing"
+        div.id = "typing"
+        div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`
+        chat.appendChild(div)
+        chat.scrollTop = chat.scrollHeight
+    }
+
+    async function enviar() {
+        const input = document.getElementById("input")
+        const texto = input.value.trim()
+        if (!texto) return
+
+        document.getElementById("sugerencias")?.remove()
+        input.value = ""
+
+        agregarMensaje(texto, "usuario")
+        mostrarTyping()
+
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ texto, session_id: sessionId })
+        })
+
+        const data = await response.json()
+        document.getElementById("typing")?.remove()
+        agregarMensaje(data.respuesta, "bot")
+    }
+
+    function enviarSugerencia(texto) {
+        document.getElementById("input").value = texto
+        enviar()
+    }
+</script>
+</body>
+</html>
