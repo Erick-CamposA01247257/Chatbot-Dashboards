@@ -4,208 +4,829 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOSADENT — Asistente Virtual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #ECE5DD; height: 100vh; display: flex; flex-direction: column; }
 
+        :root {
+            --verde: #1B5E3B;
+            --verde-mid: #2D7A52;
+            --verde-light: #E8F2EC;
+            --dorado: #C4A35A;
+            --dorado-light: #F5EDD8;
+            --crema: #FAF8F4;
+            --crema-chat: #F0EBE3;
+            --texto: #2C2C2A;
+            --texto-muted: #7A7570;
+            --blanco: #FFFFFF;
+            --borde: rgba(196,163,90,0.2);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--crema-chat);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--texto);
+        }
+
+        /* ── Header ── */
         .header {
-            background: #075E54;
-            padding: 12px 16px;
+            background: var(--verde);
+            padding: 14px 20px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            border-bottom: 1px solid rgba(196,163,90,0.3);
         }
+
         .avatar {
-            width: 40px; height: 40px;
-            background: #25D366;
+            width: 44px;
+            height: 44px;
+            background: var(--dorado);
             border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .avatar svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--verde);
+        }
+
+        .header-info h1 {
+            font-family: 'Cormorant Garamond', serif;
             font-size: 18px;
+            font-weight: 600;
+            color: var(--blanco);
+            letter-spacing: 0.5px;
         }
-        .header-info h1 { font-size: 15px; font-weight: 600; color: white; }
-        .header-info p { font-size: 12px; color: #B2DFDB; }
-        .status { display: flex; align-items: center; gap: 4px; }
-        .status-dot { width: 8px; height: 8px; background: #25D366; border-radius: 50%; }
 
-        .chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .header-sub {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
 
-        .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.5; position: relative; }
-        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; text-align: right; }
-
-        .msg-usuario { background: #DCF8C6; align-self: flex-end; border-radius: 8px 8px 0 8px; }
-        .msg-bot { background: white; align-self: flex-start; border-radius: 8px 8px 8px 0; }
-
-        .typing { background: white; align-self: flex-start; border-radius: 8px; padding: 12px 16px; }
-        .typing-dots { display: flex; gap: 4px; }
-        .typing-dots span {
-            width: 8px; height: 8px;
-            background: #999;
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--dorado);
             border-radius: 50%;
-            animation: bounce 1.2s infinite;
         }
+
+        .header-sub span {
+            font-size: 11px;
+            color: rgba(255,255,255,0.65);
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+
+        /* ── Chat area ── */
+        .chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* ── Bienvenida ── */
+        .bienvenida {
+            align-self: center;
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-align: center;
+            max-width: 320px;
+            margin-bottom: 4px;
+        }
+
+        .bienvenida-icono {
+            width: 36px;
+            height: 36px;
+            background: var(--dorado-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+        }
+
+        .bienvenida-icono svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--dorado);
+        }
+
+        .bienvenida strong {
+            display: block;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--verde);
+            margin-bottom: 4px;
+        }
+
+        .bienvenida p {
+            font-size: 12px;
+            color: var(--texto-muted);
+            line-height: 1.5;
+        }
+
+        .bienvenida-divider {
+            width: 40px;
+            height: 1px;
+            background: var(--borde);
+            margin: 10px auto;
+        }
+
+        /* ── Mensajes ── */
+        .msg {
+            max-width: 78%;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            position: relative;
+        }
+
+        .msg-time {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .msg-bot {
+            background: var(--blanco);
+            align-self: flex-start;
+            border-radius: 2px 12px 12px 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+            color: var(--texto);
+        }
+
+        .msg-usuario {
+            background: var(--verde);
+            color: var(--blanco);
+            align-self: flex-end;
+            border-radius: 12px 2px 12px 12px;
+        }
+
+        .msg-usuario .msg-time { opacity: 0.6; }
+
+        /* ── Typing ── */
+        .typing {
+            background: var(--blanco);
+            align-self: flex-start;
+            border-radius: 2px 12px 12px 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 12px 16px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .typing-dots span {
+            width: 7px;
+            height: 7px;
+            background: var(--dorado);
+            border-radius: 50%;
+            animation: pulse 1.2s infinite;
+        }
+
         .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
         .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
+
+        @keyframes pulse {
+            0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
+            30% { transform: scale(1.3); opacity: 1; }
         }
 
-        .bienvenida {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            align-self: center;
-            max-width: 85%;
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 8px;
+        /* ── Sugerencias ── */
+        .sugerencias {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            padding: 4px 0;
         }
-        .bienvenida strong { display: block; font-size: 14px; color: #333; margin-bottom: 4px; }
 
-        .sugerencias { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
         .sug-btn {
-            background: white;
-            border: 1px solid #25D366;
-            color: #075E54;
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            color: var(--verde);
             border-radius: 20px;
-            padding: 6px 14px;
+            padding: 7px 16px;
             font-size: 12px;
             cursor: pointer;
-            font-family: inherit;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 400;
+            transition: all 0.2s;
+            letter-spacing: 0.2px;
         }
-        .sug-btn:hover { background: #E8F5E9; }
 
+        .sug-btn:hover {
+            background: var(--verde-light);
+            border-color: var(--verde-mid);
+        }
+
+        /* ── Input area ── */
         .input-area {
-            background: #F0F0F0;
-            padding: 8px 12px;
+            background: var(--crema);
+            padding: 10px 14px;
             display: flex;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
+            border-top: 1px solid var(--borde);
         }
-        input {
+
+        input[type="text"] {
             flex: 1;
-            border: none;
-            border-radius: 20px;
-            padding: 10px 16px;
-            font-size: 14px;
+            border: 1px solid var(--borde);
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 13.5px;
             outline: none;
-            font-family: inherit;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--blanco);
+            color: var(--texto);
+            transition: border-color 0.2s;
         }
+
+        input[type="text"]:focus {
+            border-color: var(--verde-mid);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--texto-muted);
+            font-weight: 300;
+        }
+
         .btn-enviar {
-            width: 44px; height: 44px;
-            background: #25D366;
+            width: 42px;
+            height: 42px;
+            background: var(--verde);
             border: none;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            flex-shrink: 0;
+            transition: background 0.2s;
         }
-        .btn-enviar:hover { background: #1DA851; }
+
+        .btn-enviar:hover { background: var(--verde-mid); }
+
+        .btn-enviar svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--blanco);
+            margin-left: 2px;
+        }
+
+        /* ── Calendario ── */
+        .calendario-card {
+            background: var(--blanco);
+            border-radius: 12px;
+            border: 1px solid var(--borde);
+            padding: 18px;
+            align-self: flex-start;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .cal-titulo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--verde);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cal-titulo::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--borde);
+        }
+
+        .cal-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .cal-nav-mes {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--texto);
+            letter-spacing: 0.3px;
+        }
+
+        .cal-nav button {
+            background: none;
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--verde);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .cal-nav button:hover {
+            background: var(--verde-light);
+            border-color: var(--verde-mid);
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            text-align: center;
+        }
+
+        .cal-dia-nombre {
+            font-size: 10px;
+            color: var(--texto-muted);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            padding-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .cal-dia {
+            padding: 7px 2px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--texto);
+            transition: all 0.15s;
+        }
+
+        .cal-dia:hover:not(:disabled) {
+            background: var(--verde-light);
+            color: var(--verde);
+        }
+
+        .cal-dia.hoy {
+            font-weight: 500;
+            color: var(--dorado);
+        }
+
+        .cal-dia.seleccionado {
+            background: var(--verde);
+            color: var(--blanco);
+        }
+
+        .cal-dia:disabled {
+            color: #D0CCC7;
+            cursor: default;
+        }
+
+        /* ── Servicios ── */
+        .selector-label {
+            font-size: 11px;
+            color: var(--texto-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin: 14px 0 8px;
+        }
+
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .servicio-btn {
+            padding: 8px 10px;
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            background: var(--crema);
+            font-family: 'DM Sans', sans-serif;
+            text-align: left;
+            transition: all 0.15s;
+            color: var(--texto);
+        }
+
+        .servicio-btn:hover {
+            border-color: var(--verde-mid);
+            background: var(--verde-light);
+        }
+
+        .servicio-btn.activo {
+            border-color: var(--verde);
+            background: var(--verde-light);
+            color: var(--verde);
+            font-weight: 500;
+        }
+
+        .servicio-dur {
+            display: block;
+            font-size: 10px;
+            color: var(--texto-muted);
+            margin-top: 2px;
+            font-weight: 300;
+        }
+
+        .servicio-btn.activo .servicio-dur {
+            color: var(--verde-mid);
+        }
+
+        /* ── Slots ── */
+        .slots-wrap { margin-top: 12px; }
+
+        .slots-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .slot-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--borde);
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            background: var(--blanco);
+            color: var(--verde);
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.15s;
+        }
+
+        .slot-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+        .slot-btn.activo { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
+
+        /* ── Nombre y confirmar ── */
+        .nombre-wrap { margin-top: 12px; }
+
+        .nombre-wrap input {
+            width: 100%;
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 13px;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--crema);
+            color: var(--texto);
+            transition: border-color 0.2s;
+        }
+
+        .nombre-wrap input:focus { border-color: var(--verde-mid); }
+        .nombre-wrap input::placeholder { color: var(--texto-muted); font-weight: 300; }
+
+        .btn-confirmar {
+            width: 100%;
+            margin-top: 10px;
+            padding: 11px;
+            background: var(--verde);
+            color: var(--blanco);
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.3px;
+            transition: background 0.2s;
+        }
+
+        .btn-confirmar:hover { background: var(--verde-mid); }
+        .btn-confirmar:disabled { background: #B4B2A9; cursor: default; }
+
+        .divider-cal {
+            width: 100%;
+            height: 1px;
+            background: var(--borde);
+            margin: 14px 0 0;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="avatar">🦷</div>
+    <div class="avatar">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/>
+        </svg>
+    </div>
     <div class="header-info">
         <h1>MOSADENT</h1>
-        <div class="status">
+        <div class="header-sub">
             <div class="status-dot"></div>
-            <p>Asistente virtual • En línea</p>
+            <span>Asistente virtual · En línea</span>
         </div>
     </div>
 </div>
 
 <div class="chat" id="chat">
     <div class="bienvenida">
-        <strong>🦷 Bienvenido a MOSADENT</strong>
-        Consultorio dental en Guadalupe, N.L.<br>
-        Lunes a Domingo · 10:00 AM – 7:00 PM
+        <div class="bienvenida-icono">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/>
+            </svg>
+        </div>
+        <strong>Bienvenido a MOSADENT</strong>
+        <div class="bienvenida-divider"></div>
+        <p>Consultorio dental en Guadalupe, N.L.<br>Lunes a Domingo · 10:00 AM – 7:00 PM</p>
     </div>
 
     <div class="msg msg-bot">
-        ¡Hola! Soy el asistente virtual de MOSADENT 😊 ¿En qué puedo ayudarte hoy?
+        ¡Bienvenido a MOSADENT! ¿En qué le puedo ayudar?
         <div class="msg-time">ahora</div>
     </div>
 
     <div class="sugerencias" id="sugerencias">
-        <button class="sug-btn" onclick="enviarSugerencia('Quiero agendar una cita')">📅 Agendar cita</button>
-        <button class="sug-btn" onclick="enviarSugerencia('¿Qué servicios ofrecen?')">🦷 Servicios</button>
-        <button class="sug-btn" onclick="enviarSugerencia('¿Cuál es el horario?')">🕐 Horario</button>
-        <button class="sug-btn" onclick="enviarSugerencia('¿Dónde están ubicados?')">📍 Ubicación</button>
+        <button class="sug-btn" onclick="mostrarCalendario()">Agendar cita</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Qué servicios ofrecen?')">Servicios</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Cuál es el horario?')">Horario</button>
+        <button class="sug-btn" onclick="enviarSugerencia('¿Dónde están ubicados?')">Ubicación</button>
     </div>
 </div>
 
 <div class="input-area">
-    <input
-        type="text"
-        id="input"
-        placeholder="Escribe un mensaje..."
-        onkeypress="if(event.key==='Enter') enviar()"
-    />
-    <button class="btn-enviar" onclick="enviar()">➤</button>
+    <input type="text" id="input" placeholder="Escriba un mensaje..."
+        onkeypress="if(event.key==='Enter') enviar()" />
+    <button class="btn-enviar" onclick="enviar()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+        </svg>
+    </button>
 </div>
 
 <script>
-    const sessionId = "demo-" + Date.now()
+const sessionId = "demo-" + Date.now()
 
-    function horaActual() {
-        const now = new Date()
-        return now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0")
+const SERVICIOS = [
+    { nombre: "Limpieza dental", duracion: 30 },
+    { nombre: "Blanqueamiento", duracion: 60 },
+    { nombre: "Ortodoncia", duracion: 60 },
+    { nombre: "Implantes", duracion: 90 },
+    { nombre: "Extracciones", duracion: 45 },
+    { nombre: "Resinas", duracion: 60 },
+    { nombre: "Revisión general", duracion: 30 },
+]
+
+let estadoCal = {
+    año: new Date().getFullYear(),
+    mes: new Date().getMonth(),
+    fechaSeleccionada: null,
+    servicioSeleccionado: null,
+    horaSeleccionada: null,
+}
+
+function horaActual() {
+    const now = new Date()
+    return now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0")
+}
+
+function agregarMensaje(texto, tipo) {
+    const chat = document.getElementById("chat")
+    const div = document.createElement("div")
+    div.className = `msg msg-${tipo}`
+    div.innerHTML = `${texto
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>')
+    }<div class="msg-time">${horaActual()}</div>`
+    chat.appendChild(div)
+    chat.scrollTop = chat.scrollHeight
+}
+
+function mostrarTyping() {
+    const chat = document.getElementById("chat")
+    const div = document.createElement("div")
+    div.className = "typing"
+    div.id = "typing"
+    div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`
+    chat.appendChild(div)
+    chat.scrollTop = chat.scrollHeight
+}
+
+async function enviar() {
+    const input = document.getElementById("input")
+    const texto = input.value.trim()
+    if (!texto) return
+    document.getElementById("sugerencias")?.remove()
+    input.value = ""
+    agregarMensaje(texto, "usuario")
+    mostrarTyping()
+    const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, session_id: sessionId })
+    })
+    const data = await response.json()
+    document.getElementById("typing")?.remove()
+    agregarMensaje(data.respuesta, "bot")
+}
+
+function enviarSugerencia(texto) {
+    document.getElementById("sugerencias")?.remove()
+    document.getElementById("input").value = texto
+    enviar()
+}
+
+function mostrarCalendario() {
+    document.getElementById("sugerencias")?.remove()
+    estadoCal = {
+        año: new Date().getFullYear(),
+        mes: new Date().getMonth(),
+        fechaSeleccionada: null,
+        servicioSeleccionado: null,
+        horaSeleccionada: null,
+    }
+    renderCalendario()
+}
+
+function renderCalendario() {
+    const chat = document.getElementById("chat")
+    document.getElementById("cal-card")?.remove()
+
+    const card = document.createElement("div")
+    card.className = "calendario-card"
+    card.id = "cal-card"
+
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    const dias = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
+    const hoy = new Date()
+    const primerDia = new Date(estadoCal.año, estadoCal.mes, 1).getDay()
+    const totalDias = new Date(estadoCal.año, estadoCal.mes + 1, 0).getDate()
+
+    let gridHTML = dias.map(d => `<div class="cal-dia-nombre">${d}</div>`).join("")
+    for (let i = 0; i < primerDia; i++) gridHTML += `<div></div>`
+
+    for (let d = 1; d <= totalDias; d++) {
+        const fecha = `${estadoCal.año}-${String(estadoCal.mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
+        const esHoy = d === hoy.getDate() && estadoCal.mes === hoy.getMonth() && estadoCal.año === hoy.getFullYear()
+        const pasado = new Date(fecha) < new Date(hoy.toDateString())
+        const seleccionado = fecha === estadoCal.fechaSeleccionada
+        gridHTML += `<button class="cal-dia ${esHoy ? 'hoy':''} ${seleccionado ? 'seleccionado':''}"
+            ${pasado ? 'disabled' : ''}
+            onclick="seleccionarFecha('${fecha}')">${d}</button>`
     }
 
-    function agregarMensaje(texto, tipo) {
-        const chat = document.getElementById("chat")
-        const div = document.createElement("div")
-        div.className = `msg msg-${tipo}`
-        div.innerHTML = `${texto
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
-    .replace(/1️⃣|2️⃣|3️⃣|4️⃣/g, m => m)
-}<div class="msg-time">${horaActual()}</div>`
-        chat.appendChild(div)
-        chat.scrollTop = chat.scrollHeight
+    const serviciosHTML = SERVICIOS.map(s => `
+        <button class="servicio-btn ${estadoCal.servicioSeleccionado === s.nombre ? 'activo' : ''}"
+            onclick="seleccionarServicio('${s.nombre}')">
+            ${s.nombre}
+            <span class="servicio-dur">${s.duracion} min</span>
+        </button>`).join("")
+
+    card.innerHTML = `
+        <div class="cal-titulo">Agendar cita</div>
+        <div class="cal-nav">
+            <button onclick="cambiarMes(-1)">‹</button>
+            <span class="cal-nav-mes">${meses[estadoCal.mes]} ${estadoCal.año}</span>
+            <button onclick="cambiarMes(1)">›</button>
+        </div>
+        <div class="cal-grid">${gridHTML}</div>
+        <div class="divider-cal"></div>
+        <div class="selector-label">Servicio</div>
+        <div class="servicios-grid">${serviciosHTML}</div>
+        <div id="slots-wrap"></div>
+        <div id="nombre-wrap"></div>
+    `
+
+    chat.appendChild(card)
+    chat.scrollTop = chat.scrollHeight
+
+    if (estadoCal.fechaSeleccionada && estadoCal.servicioSeleccionado) {
+        cargarSlots()
+    }
+}
+
+function cambiarMes(delta) {
+    estadoCal.mes += delta
+    if (estadoCal.mes < 0) { estadoCal.mes = 11; estadoCal.año-- }
+    if (estadoCal.mes > 11) { estadoCal.mes = 0; estadoCal.año++ }
+    estadoCal.fechaSeleccionada = null
+    estadoCal.horaSeleccionada = null
+    renderCalendario()
+}
+
+function seleccionarFecha(fecha) {
+    estadoCal.fechaSeleccionada = fecha
+    estadoCal.horaSeleccionada = null
+    renderCalendario()
+}
+
+function seleccionarServicio(nombre) {
+    estadoCal.servicioSeleccionado = nombre
+    estadoCal.horaSeleccionada = null
+    renderCalendario()
+}
+
+async function cargarSlots() {
+    const wrap = document.getElementById("slots-wrap")
+    wrap.innerHTML = `<div class="selector-label" style="margin-top:14px">Cargando horarios...</div>`
+
+    const res = await fetch(`/api/slots?fecha=${estadoCal.fechaSeleccionada}&servicio=${encodeURIComponent(estadoCal.servicioSeleccionado)}`)
+    const data = await res.json()
+
+    if (data.slots.length === 0) {
+        wrap.innerHTML = `<div class="selector-label" style="margin-top:14px">Sin horarios disponibles ese día.</div>`
+        return
     }
 
-    function mostrarTyping() {
-        const chat = document.getElementById("chat")
-        const div = document.createElement("div")
-        div.className = "typing"
-        div.id = "typing"
-        div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`
-        chat.appendChild(div)
-        chat.scrollTop = chat.scrollHeight
-    }
+    const slotsHTML = data.slots.map(s => `
+        <button class="slot-btn ${estadoCal.horaSeleccionada === s ? 'activo':''}"
+            onclick="seleccionarHora('${s}')">${convertir12h(s)}</button>`).join("")
 
-    async function enviar() {
-        const input = document.getElementById("input")
-        const texto = input.value.trim()
-        if (!texto) return
+    wrap.innerHTML = `
+        <div class="selector-label" style="margin-top:14px">Horarios disponibles</div>
+        <div class="slots-grid">${slotsHTML}</div>`
 
-        document.getElementById("sugerencias")?.remove()
-        input.value = ""
+    if (estadoCal.horaSeleccionada) renderNombre()
+}
 
-        agregarMensaje(texto, "usuario")
-        mostrarTyping()
+function seleccionarHora(hora) {
+    estadoCal.horaSeleccionada = hora
+    renderCalendario()
+    setTimeout(() => {
+        cargarSlots().then(() => renderNombre())
+    }, 50)
+}
 
-        const response = await fetch("/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ texto, session_id: sessionId })
+function renderNombre() {
+    const wrap = document.getElementById("nombre-wrap")
+    if (!wrap) return
+    wrap.innerHTML = `
+        <div class="nombre-wrap">
+            <div class="selector-label" style="margin-top:14px">Nombre completo</div>
+            <input type="text" id="nombre-input" placeholder="Ej. María González" />
+        </div>
+        <button class="btn-confirmar" onclick="confirmarCita()">Confirmar cita</button>
+    `
+}
+
+async function confirmarCita() {
+    const nombre = document.getElementById("nombre-input")?.value.trim()
+    if (!nombre) { alert("Por favor ingrese su nombre completo."); return }
+
+    const btn = document.querySelector(".btn-confirmar")
+    btn.disabled = true
+    btn.textContent = "Registrando..."
+
+    const res = await fetch("/api/agendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            nombre,
+            servicio: estadoCal.servicioSeleccionado,
+            fecha: estadoCal.fechaSeleccionada,
+            hora: estadoCal.horaSeleccionada
         })
+    })
 
-        const data = await response.json()
-        document.getElementById("typing")?.remove()
-        agregarMensaje(data.respuesta, "bot")
-    }
+    const data = await res.json()
+    document.getElementById("cal-card")?.remove()
 
-    function enviarSugerencia(texto) {
-        document.getElementById("input").value = texto
-        enviar()
+    if (res.ok) {
+        const fechaLegible = new Date(estadoCal.fechaSeleccionada + "T12:00:00").toLocaleDateString("es-MX", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric"
+        })
+        const hora12 = convertir12h(estadoCal.horaSeleccionada)
+        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estadoCal.servicioSeleccionado}\n**Fecha:** ${fechaLegible}\n**Hora:** ${hora12}\n\nLa doctora le confirmará próximamente. Le esperamos en MOSADENT.`, "bot")
+    } else {
+        agregarMensaje(`Lo sentimos, ese horario ya no está disponible. Por favor seleccione otro.`, "bot")
+        setTimeout(mostrarCalendario, 1000)
     }
+}
+
+function convertir12h(hora24) {
+    const [h, m] = hora24.split(":").map(Number)
+    const suffix = h >= 12 ? "PM" : "AM"
+    const h12 = h % 12 || 12
+    return `${h12}:${String(m).padStart(2,"0")} ${suffix}`
+}
 </script>
 </body>
 </html>
