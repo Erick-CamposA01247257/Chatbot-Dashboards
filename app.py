@@ -8,6 +8,9 @@ import os
 from datetime import date, datetime, timedelta
 
 load_dotenv()
+import sys
+print(f"API KEY EXISTS: {'ANTHROPIC_API_KEY' in os.environ}", file=sys.stderr)
+print(f"API KEY VALUE: {os.environ.get('ANTHROPIC_API_KEY', 'NOT FOUND')[:20]}", file=sys.stderr)
 
 app = FastAPI()
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -225,6 +228,8 @@ async def api_agendar(cita: CitaRequest):
 
 @app.post("/chat")
 async def chat(mensaje: Mensaje):
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    
     if mensaje.session_id not in conversaciones:
         conversaciones[mensaje.session_id] = []
 
