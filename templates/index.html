@@ -25,13 +25,12 @@
         body {
             font-family: 'DM Sans', sans-serif;
             background: var(--crema-chat);
-            height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             color: var(--texto);
         }
 
-        /* ── Header ── */
         .header {
             background: var(--verde);
             padding: 14px 20px;
@@ -39,65 +38,41 @@
             align-items: center;
             gap: 14px;
             border-bottom: 1px solid rgba(196,163,90,0.3);
-        }
-
-        .avatar {
-            width: 44px;
-            height: 44px;
-            background: var(--dorado);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             flex-shrink: 0;
         }
 
-        .avatar svg {
-            width: 22px;
-            height: 22px;
-            fill: var(--verde);
+        .avatar {
+            width: 44px; height: 44px;
+            background: var(--dorado);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
         }
+
+        .avatar svg { width: 22px; height: 22px; fill: var(--verde); }
 
         .header-info h1 {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--blanco);
-            letter-spacing: 0.5px;
+            font-size: 18px; font-weight: 600;
+            color: var(--blanco); letter-spacing: 0.5px;
         }
 
-        .header-sub {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 2px;
-        }
+        .header-sub { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            background: var(--dorado);
-            border-radius: 50%;
-        }
+        .status-dot { width: 7px; height: 7px; background: var(--dorado); border-radius: 50%; }
 
-        .header-sub span {
-            font-size: 11px;
-            color: rgba(255,255,255,0.65);
-            font-weight: 300;
-            letter-spacing: 0.3px;
-        }
+        .header-sub span { font-size: 11px; color: rgba(255,255,255,0.65); font-weight: 300; letter-spacing: 0.3px; }
 
-        /* ── Chat area ── */
         .chat {
             flex: 1;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding: 20px 16px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        /* ── Bienvenida ── */
         .bienvenida {
             align-self: center;
             background: var(--blanco);
@@ -110,45 +85,26 @@
         }
 
         .bienvenida-icono {
-            width: 36px;
-            height: 36px;
+            width: 36px; height: 36px;
             background: var(--dorado-light);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             margin: 0 auto 10px;
         }
 
-        .bienvenida-icono svg {
-            width: 18px;
-            height: 18px;
-            fill: var(--dorado);
-        }
+        .bienvenida-icono svg { width: 18px; height: 18px; fill: var(--dorado); }
 
         .bienvenida strong {
             display: block;
             font-family: 'Cormorant Garamond', serif;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--verde);
-            margin-bottom: 4px;
+            font-size: 16px; font-weight: 600;
+            color: var(--verde); margin-bottom: 4px;
         }
 
-        .bienvenida p {
-            font-size: 12px;
-            color: var(--texto-muted);
-            line-height: 1.5;
-        }
+        .bienvenida p { font-size: 12px; color: var(--texto-muted); line-height: 1.5; }
 
-        .bienvenida-divider {
-            width: 40px;
-            height: 1px;
-            background: var(--borde);
-            margin: 10px auto;
-        }
+        .bienvenida-divider { width: 40px; height: 1px; background: var(--borde); margin: 10px auto; }
 
-        /* ── Mensajes ── */
         .msg {
             max-width: 78%;
             padding: 10px 14px;
@@ -157,12 +113,7 @@
             position: relative;
         }
 
-        .msg-time {
-            font-size: 10px;
-            opacity: 0.5;
-            margin-top: 5px;
-            text-align: right;
-        }
+        .msg-time { font-size: 10px; opacity: 0.5; margin-top: 5px; text-align: right; }
 
         .msg-bot {
             background: var(--blanco);
@@ -181,7 +132,6 @@
 
         .msg-usuario .msg-time { opacity: 0.6; }
 
-        /* ── Typing ── */
         .typing {
             background: var(--blanco);
             align-self: flex-start;
@@ -190,15 +140,10 @@
             padding: 12px 16px;
         }
 
-        .typing-dots {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
+        .typing-dots { display: flex; gap: 5px; align-items: center; }
 
         .typing-dots span {
-            width: 7px;
-            height: 7px;
+            width: 7px; height: 7px;
             background: var(--dorado);
             border-radius: 50%;
             animation: pulse 1.2s infinite;
@@ -212,14 +157,7 @@
             30% { transform: scale(1.3); opacity: 1; }
         }
 
-        /* ── Sugerencias ── */
-        .sugerencias {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            padding: 4px 0;
-        }
+        .sugerencias { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 4px 0; }
 
         .sug-btn {
             background: var(--blanco);
@@ -235,12 +173,8 @@
             letter-spacing: 0.2px;
         }
 
-        .sug-btn:hover {
-            background: var(--verde-light);
-            border-color: var(--verde-mid);
-        }
+        .sug-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
 
-        /* ── Input area ── */
         .input-area {
             background: var(--crema);
             padding: 10px 14px;
@@ -248,6 +182,7 @@
             gap: 10px;
             align-items: center;
             border-top: 1px solid var(--borde);
+            flex-shrink: 0;
         }
 
         input[type="text"] {
@@ -263,39 +198,22 @@
             transition: border-color 0.2s;
         }
 
-        input[type="text"]:focus {
-            border-color: var(--verde-mid);
-        }
-
-        input[type="text"]::placeholder {
-            color: var(--texto-muted);
-            font-weight: 300;
-        }
+        input[type="text"]:focus { border-color: var(--verde-mid); }
+        input[type="text"]::placeholder { color: var(--texto-muted); font-weight: 300; }
 
         .btn-enviar {
-            width: 42px;
-            height: 42px;
+            width: 42px; height: 42px;
             background: var(--verde);
-            border: none;
-            border-radius: 50%;
+            border: none; border-radius: 50%;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
             transition: background 0.2s;
         }
 
         .btn-enviar:hover { background: var(--verde-mid); }
+        .btn-enviar svg { width: 16px; height: 16px; fill: var(--blanco); margin-left: 2px; }
 
-        .btn-enviar svg {
-            width: 16px;
-            height: 16px;
-            fill: var(--blanco);
-            margin-left: 2px;
-        }
-
-        /* ── Calendario ── */
         .calendario-card {
             background: var(--blanco);
             border-radius: 12px;
@@ -303,200 +221,115 @@
             padding: 18px;
             align-self: flex-start;
             width: 100%;
-            max-width: 360px;
+            max-width: 400px;
         }
 
         .cal-titulo {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 15px; font-weight: 600;
             color: var(--verde);
             margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
 
-        .cal-titulo::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--borde);
-        }
+        .cal-titulo::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
 
-        .cal-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
+        .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 
-        .cal-nav-mes {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--texto);
-            letter-spacing: 0.3px;
-        }
+        .cal-nav-mes { font-size: 13px; font-weight: 500; color: var(--texto); letter-spacing: 0.3px; }
 
         .cal-nav button {
             background: none;
             border: 1px solid var(--borde);
             border-radius: 6px;
-            width: 28px;
-            height: 28px;
-            cursor: pointer;
-            font-size: 14px;
+            width: 28px; height: 28px;
+            cursor: pointer; font-size: 14px;
             color: var(--verde);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             transition: all 0.15s;
         }
 
-        .cal-nav button:hover {
-            background: var(--verde-light);
-            border-color: var(--verde-mid);
-        }
+        .cal-nav button:hover { background: var(--verde-light); border-color: var(--verde-mid); }
 
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
-            text-align: center;
-        }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
 
         .cal-dia-nombre {
-            font-size: 10px;
-            color: var(--texto-muted);
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            padding-bottom: 6px;
-            text-transform: uppercase;
+            font-size: 10px; color: var(--texto-muted);
+            font-weight: 500; letter-spacing: 0.5px;
+            padding-bottom: 6px; text-transform: uppercase;
         }
 
         .cal-dia {
-            padding: 7px 2px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            border: none;
-            background: none;
+            padding: 7px 2px; border-radius: 6px;
+            font-size: 12px; cursor: pointer;
+            border: none; background: none;
             font-family: 'DM Sans', sans-serif;
-            color: var(--texto);
-            transition: all 0.15s;
+            color: var(--texto); transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .cal-dia:hover:not(:disabled) {
-            background: var(--verde-light);
-            color: var(--verde);
-        }
+        .cal-dia:hover:not(:disabled) { background: var(--verde-light); color: var(--verde); }
+        .cal-dia.hoy { font-weight: 500; color: var(--dorado); }
+        .cal-dia.seleccionado { background: var(--verde); color: var(--blanco); }
+        .cal-dia:disabled { color: #D0CCC7; cursor: default; }
 
-        .cal-dia.hoy {
-            font-weight: 500;
-            color: var(--dorado);
-        }
-
-        .cal-dia.seleccionado {
-            background: var(--verde);
-            color: var(--blanco);
-        }
-
-        .cal-dia:disabled {
-            color: #D0CCC7;
-            cursor: default;
-        }
-
-        /* ── Servicios ── */
         .selector-label {
-            font-size: 11px;
-            color: var(--texto-muted);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            font-size: 11px; color: var(--texto-muted);
+            letter-spacing: 0.5px; text-transform: uppercase;
             margin: 14px 0 8px;
         }
 
-        .servicios-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin-bottom: 4px;
-        }
+        .servicios-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
 
         .servicio-btn {
             padding: 8px 10px;
             border: 1px solid var(--borde);
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            background: var(--crema);
+            border-radius: 8px; font-size: 12px;
+            cursor: pointer; background: var(--crema);
             font-family: 'DM Sans', sans-serif;
-            text-align: left;
-            transition: all 0.15s;
+            text-align: left; transition: all 0.15s;
             color: var(--texto);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .servicio-btn:hover {
-            border-color: var(--verde-mid);
-            background: var(--verde-light);
-        }
+        .servicio-btn:hover { border-color: var(--verde-mid); background: var(--verde-light); }
 
         .servicio-btn.activo {
             border-color: var(--verde);
             background: var(--verde-light);
-            color: var(--verde);
-            font-weight: 500;
+            color: var(--verde); font-weight: 500;
         }
 
-        .servicio-dur {
-            display: block;
-            font-size: 10px;
-            color: var(--texto-muted);
-            margin-top: 2px;
-            font-weight: 300;
-        }
+        .servicio-dur { display: block; font-size: 10px; color: var(--texto-muted); margin-top: 2px; font-weight: 300; }
+        .servicio-btn.activo .servicio-dur { color: var(--verde-mid); }
 
-        .servicio-btn.activo .servicio-dur {
-            color: var(--verde-mid);
-        }
-
-        /* ── Slots ── */
         .slots-wrap { margin-top: 12px; }
 
-        .slots-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
+        .slots-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
         .slot-btn {
             padding: 6px 12px;
             border: 1px solid var(--borde);
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            background: var(--blanco);
+            border-radius: 20px; font-size: 12px;
+            cursor: pointer; background: var(--blanco);
             color: var(--verde);
             font-family: 'DM Sans', sans-serif;
             transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .slot-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
         .slot-btn.activo { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
 
-        /* ── Nombre y confirmar ── */
         .nombre-wrap { margin-top: 12px; }
 
         .nombre-wrap input {
             width: 100%;
             border: 1px solid var(--borde);
-            border-radius: 8px;
-            padding: 9px 14px;
-            font-size: 13px;
-            outline: none;
+            border-radius: 8px; padding: 9px 14px;
+            font-size: 13px; outline: none;
             font-family: 'DM Sans', sans-serif;
-            background: var(--crema);
-            color: var(--texto);
+            background: var(--crema); color: var(--texto);
             transition: border-color 0.2s;
         }
 
@@ -504,30 +337,18 @@
         .nombre-wrap input::placeholder { color: var(--texto-muted); font-weight: 300; }
 
         .btn-confirmar {
-            width: 100%;
-            margin-top: 10px;
-            padding: 11px;
-            background: var(--verde);
-            color: var(--blanco);
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            letter-spacing: 0.3px;
-            transition: background 0.2s;
+            width: 100%; margin-top: 10px; padding: 11px;
+            background: var(--verde); color: var(--blanco);
+            border: none; border-radius: 8px;
+            font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.3px; transition: background 0.2s;
         }
 
         .btn-confirmar:hover { background: var(--verde-mid); }
         .btn-confirmar:disabled { background: #B4B2A9; cursor: default; }
 
-        .divider-cal {
-            width: 100%;
-            height: 1px;
-            background: var(--borde);
-            margin: 14px 0 0;
-        }
+        .divider-cal { width: 100%; height: 1px; background: var(--borde); margin: 14px 0 0; }
     </style>
 </head>
 <body>
@@ -735,13 +556,30 @@ function cambiarMes(delta) {
 function seleccionarFecha(fecha) {
     estadoCal.fechaSeleccionada = fecha
     estadoCal.horaSeleccionada = null
-    renderCalendario()
+    document.querySelectorAll(".cal-dia").forEach(b => {
+        b.classList.toggle("seleccionado", b.getAttribute("onclick")?.includes(`'${fecha}'`))
+    })
+    document.getElementById("nombre-wrap").innerHTML = ""
+    if (estadoCal.servicioSeleccionado) cargarSlots()
 }
 
 function seleccionarServicio(nombre) {
     estadoCal.servicioSeleccionado = nombre
     estadoCal.horaSeleccionada = null
-    renderCalendario()
+    document.querySelectorAll(".servicio-btn").forEach(b => {
+        b.classList.toggle("activo", b.getAttribute("onclick")?.includes(`'${nombre}'`))
+        b.style.pointerEvents = "none"
+    })
+    document.getElementById("nombre-wrap").innerHTML = ""
+    if (estadoCal.fechaSeleccionada) {
+        cargarSlots().then(() => {
+            document.querySelectorAll(".servicio-btn").forEach(b => b.style.pointerEvents = "")
+        })
+    } else {
+        setTimeout(() => {
+            document.querySelectorAll(".servicio-btn").forEach(b => b.style.pointerEvents = "")
+        }, 500)
+    }
 }
 
 async function cargarSlots() {
@@ -769,10 +607,14 @@ async function cargarSlots() {
 
 function seleccionarHora(hora) {
     estadoCal.horaSeleccionada = hora
-    renderCalendario()
+    document.querySelectorAll(".slot-btn").forEach(b => {
+        b.classList.toggle("activo", b.getAttribute("onclick")?.includes(`'${hora}'`))
+        b.style.pointerEvents = "none"
+    })
     setTimeout(() => {
-        cargarSlots().then(() => renderNombre())
-    }, 50)
+        document.querySelectorAll(".slot-btn").forEach(b => b.style.pointerEvents = "")
+        renderNombre()
+    }, 300)
 }
 
 function renderNombre() {
