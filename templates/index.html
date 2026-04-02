@@ -349,6 +349,25 @@
         .btn-confirmar:disabled { background: #B4B2A9; cursor: default; }
 
         .divider-cal { width: 100%; height: 1px; background: var(--borde); margin: 14px 0 0; }
+        .btn-agendar-fijo {
+    background: none;
+    border: 1px solid var(--borde);
+    color: var(--verde);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.btn-agendar-fijo:hover {
+    background: var(--verde-light);
+    border-color: var(--verde-mid);
+}
     </style>
 </head>
 <body>
@@ -394,6 +413,7 @@
 </div>
 
 <div class="input-area">
+    <button class="btn-agendar-fijo" onclick="mostrarCalendario()">Agendar cita</button>
     <input type="text" id="input" placeholder="Escriba un mensaje..."
         onkeypress="if(event.key==='Enter') enviar()" />
     <button class="btn-enviar" onclick="enviar()">
