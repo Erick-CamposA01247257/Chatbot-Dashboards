@@ -157,12 +157,12 @@ def calcular_slots(fecha: str, duracion: int):
 
     hoy = date.today().strftime("%Y-%m-%d")
     es_hoy = fecha == hoy
-    ahora = datetime.now() + timedelta(hours=2) if es_hoy else None
+    ahora = datetime.now() - timedelta(hours=6) + timedelta(hours=2) if es_hoy else None
 
     while cursor_time + timedelta(minutes=duracion) <= fin_dia:
         fin_slot = cursor_time + timedelta(minutes=duracion)
 
-        if es_hoy and cursor_time <= datetime.now():
+        if es_hoy and cursor_time <= datetime.now() - timedelta(hours=6):
             cursor_time += timedelta(minutes=30)
             continue
 
