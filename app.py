@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 load_dotenv()
 
 app = FastAPI()
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # ============================================
 # INICIO — Configuración
