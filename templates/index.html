@@ -20,6 +20,7 @@
             --texto-muted: #7A7570;
             --blanco: #FFFFFF;
             --borde: rgba(196,163,90,0.2);
+            --borde-dark: rgba(196,163,90,0.4);
         }
 
         body {
@@ -58,10 +59,8 @@
         }
 
         .header-sub { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-
         .status-dot { width: 7px; height: 7px; background: var(--dorado); border-radius: 50%; }
-
-        .header-sub span { font-size: 11px; color: rgba(255,255,255,0.65); font-weight: 300; letter-spacing: 0.3px; }
+        .header-sub span { font-size: 11px; color: rgba(255,255,255,0.65); font-weight: 300; }
 
         .chat {
             flex: 1;
@@ -102,7 +101,6 @@
         }
 
         .bienvenida p { font-size: 12px; color: var(--texto-muted); line-height: 1.5; }
-
         .bienvenida-divider { width: 40px; height: 1px; background: var(--borde); margin: 10px auto; }
 
         .msg {
@@ -170,7 +168,6 @@
             font-family: 'DM Sans', sans-serif;
             font-weight: 400;
             transition: all 0.2s;
-            letter-spacing: 0.2px;
         }
 
         .sug-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
@@ -214,80 +211,198 @@
         .btn-enviar:hover { background: var(--verde-mid); }
         .btn-enviar svg { width: 16px; height: 16px; fill: var(--blanco); margin-left: 2px; }
 
-        .calendario-card {
+        .btn-agendar-fijo {
+            background: none;
+            border: 1px solid var(--borde-dark);
+            color: var(--verde);
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .btn-agendar-fijo:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+
+        /* ── Wizard de agendado ── */
+        .wizard-card {
             background: var(--blanco);
-            border-radius: 12px;
+            border-radius: 16px;
             border: 1px solid var(--borde);
-            padding: 18px;
+            padding: 20px;
             align-self: flex-start;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
         }
 
-        .cal-titulo {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 15px; font-weight: 600;
+        /* Indicador de pasos */
+        .pasos {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+
+        .paso-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .paso-circulo {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: var(--crema-chat);
+            border: 1px solid var(--borde-dark);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--texto-muted);
+            transition: all 0.3s;
+        }
+
+        .paso-circulo.activo {
+            background: var(--verde);
+            border-color: var(--verde);
+            color: var(--blanco);
+        }
+
+        .paso-circulo.completado {
+            background: var(--verde-light);
+            border-color: var(--verde);
             color: var(--verde);
-            margin-bottom: 14px;
-            display: flex; align-items: center; gap: 8px;
         }
 
-        .cal-titulo::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
+        .paso-label {
+            font-size: 9px;
+            color: var(--texto-muted);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            text-align: center;
+        }
 
+        .paso-label.activo { color: var(--verde); }
+
+        .paso-linea {
+            flex: 1;
+            height: 1px;
+            background: var(--borde-dark);
+            margin-bottom: 16px;
+            max-width: 40px;
+        }
+
+        .paso-linea.completado { background: var(--verde); }
+
+        /* Encabezado del paso */
+        .paso-titulo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--verde);
+            margin-bottom: 4px;
+        }
+
+        .paso-subtitulo {
+            font-size: 12px;
+            color: var(--texto-muted);
+            margin-bottom: 16px;
+            font-weight: 300;
+        }
+
+        /* Resumen selección previa */
+        .resumen-seleccion {
+            background: var(--verde-light);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .resumen-seleccion span {
+            font-size: 12px;
+            color: var(--verde);
+            font-weight: 500;
+        }
+
+        .resumen-cambiar {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--verde-mid);
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        /* Calendario */
         .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-
-        .cal-nav-mes { font-size: 13px; font-weight: 500; color: var(--texto); letter-spacing: 0.3px; }
+        .cal-nav-mes { font-size: 13px; font-weight: 500; color: var(--texto); }
 
         .cal-nav button {
             background: none;
             border: 1px solid var(--borde);
             border-radius: 6px;
-            width: 28px; height: 28px;
-            cursor: pointer; font-size: 14px;
+            width: 30px; height: 30px;
+            cursor: pointer; font-size: 16px;
             color: var(--verde);
             display: flex; align-items: center; justify-content: center;
             transition: all 0.15s;
         }
 
-        .cal-nav button:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+        .cal-nav button:hover { background: var(--verde-light); }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
 
         .cal-dia-nombre {
             font-size: 10px; color: var(--texto-muted);
-            font-weight: 500; letter-spacing: 0.5px;
-            padding-bottom: 6px; text-transform: uppercase;
+            font-weight: 600; padding-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.3px;
         }
 
         .cal-dia {
-            padding: 7px 2px; border-radius: 6px;
-            font-size: 12px; cursor: pointer;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
             border: none; background: none;
             font-family: 'DM Sans', sans-serif;
-            color: var(--texto); transition: all 0.15s;
+            color: var(--texto);
+            transition: all 0.15s;
             -webkit-tap-highlight-color: transparent;
+            display: flex; align-items: center; justify-content: center;
         }
 
         .cal-dia:hover:not(:disabled) { background: var(--verde-light); color: var(--verde); }
-        .cal-dia.hoy { font-weight: 500; color: var(--dorado); }
-        .cal-dia.seleccionado { background: var(--verde); color: var(--blanco); }
+        .cal-dia.hoy { font-weight: 600; color: var(--dorado); }
+        .cal-dia.seleccionado { background: var(--verde); color: var(--blanco); font-weight: 600; }
         .cal-dia:disabled { color: #D0CCC7; cursor: default; }
 
-        .selector-label {
-            font-size: 11px; color: var(--texto-muted);
-            letter-spacing: 0.5px; text-transform: uppercase;
-            margin: 14px 0 8px;
+        /* Servicios */
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        .servicios-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
-
         .servicio-btn {
-            padding: 8px 10px;
-            border: 1px solid var(--borde);
-            border-radius: 8px; font-size: 12px;
-            cursor: pointer; background: var(--crema);
+            padding: 14px 12px;
+            border: 1.5px solid var(--borde-dark);
+            border-radius: 10px;
+            cursor: pointer;
+            background: var(--crema);
             font-family: 'DM Sans', sans-serif;
-            text-align: left; transition: all 0.15s;
+            text-align: left;
+            transition: all 0.15s;
             color: var(--texto);
             -webkit-tap-highlight-color: transparent;
         }
@@ -297,50 +412,105 @@
         .servicio-btn.activo {
             border-color: var(--verde);
             background: var(--verde-light);
-            color: var(--verde); font-weight: 500;
+            color: var(--verde);
         }
 
-        .servicio-dur { display: block; font-size: 10px; color: var(--texto-muted); margin-top: 2px; font-weight: 300; }
+        .servicio-nombre { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; }
+        .servicio-dur { font-size: 11px; color: var(--texto-muted); font-weight: 300; }
         .servicio-btn.activo .servicio-dur { color: var(--verde-mid); }
 
-        .slots-wrap { margin-top: 12px; }
-
-        .slots-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        /* Slots */
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
 
         .slot-btn {
-            padding: 6px 12px;
-            border: 1px solid var(--borde);
-            border-radius: 20px; font-size: 12px;
-            cursor: pointer; background: var(--blanco);
-            color: var(--verde);
+            padding: 12px 8px;
+            border: 1.5px solid var(--borde-dark);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--crema);
+            color: var(--texto);
             font-family: 'DM Sans', sans-serif;
             transition: all 0.15s;
+            text-align: center;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .slot-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+        .slot-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); color: var(--verde); }
         .slot-btn.activo { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
 
-        .nombre-wrap { margin-top: 12px; }
+        /* Confirmación */
+        .resumen-cita {
+            background: var(--verde-light);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
 
-        .nombre-wrap input {
+        .resumen-fila {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(196,163,90,0.15);
+        }
+
+        .resumen-fila:last-child { border-bottom: none; }
+
+        .resumen-etiqueta {
+            font-size: 11px;
+            color: var(--verde-mid);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .resumen-valor {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--verde);
+        }
+
+        .nombre-input-wrap { margin-bottom: 12px; }
+
+        .nombre-input-wrap label {
+            display: block;
+            font-size: 11px;
+            color: var(--texto-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 8px;
+        }
+
+        .nombre-input-wrap input {
             width: 100%;
-            border: 1px solid var(--borde);
-            border-radius: 8px; padding: 9px 14px;
-            font-size: 13px; outline: none;
+            border: 1.5px solid var(--borde-dark);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            outline: none;
             font-family: 'DM Sans', sans-serif;
-            background: var(--crema); color: var(--texto);
+            background: var(--crema);
+            color: var(--texto);
             transition: border-color 0.2s;
         }
 
-        .nombre-wrap input:focus { border-color: var(--verde-mid); }
-        .nombre-wrap input::placeholder { color: var(--texto-muted); font-weight: 300; }
+        .nombre-input-wrap input:focus { border-color: var(--verde); }
+        .nombre-input-wrap input::placeholder { color: var(--texto-muted); font-weight: 300; }
 
         .btn-confirmar {
-            width: 100%; margin-top: 10px; padding: 11px;
+            width: 100%; padding: 14px;
             background: var(--verde); color: var(--blanco);
-            border: none; border-radius: 8px;
-            font-size: 13px; font-weight: 500;
+            border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 500;
             cursor: pointer; font-family: 'DM Sans', sans-serif;
             letter-spacing: 0.3px; transition: background 0.2s;
         }
@@ -348,26 +518,23 @@
         .btn-confirmar:hover { background: var(--verde-mid); }
         .btn-confirmar:disabled { background: #B4B2A9; cursor: default; }
 
-        .divider-cal { width: 100%; height: 1px; background: var(--borde); margin: 14px 0 0; }
-        .btn-agendar-fijo {
-    background: none;
-    border: 1px solid var(--borde);
-    color: var(--verde);
-    border-radius: 20px;
-    padding: 7px 14px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all 0.2s;
-}
+        .cargando {
+            text-align: center;
+            padding: 24px;
+            color: var(--texto-muted);
+            font-size: 13px;
+            font-weight: 300;
+        }
 
-.btn-agendar-fijo:hover {
-    background: var(--verde-light);
-    border-color: var(--verde-mid);
-}
+        .sin-slots {
+            text-align: center;
+            padding: 20px;
+            color: var(--texto-muted);
+            font-size: 13px;
+            font-weight: 300;
+            background: var(--crema);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -400,12 +567,12 @@
     </div>
 
     <div class="msg msg-bot">
-        ¡Bienvenido al chat virtual de MOSADENT! Puede angendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación. Estoy aquí para ayudarle a tener la mejor experiencia posible.
+        ¡Bienvenido al chat virtual de MOSADENT! Puede agendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación.
         <div class="msg-time">ahora</div>
     </div>
 
     <div class="sugerencias" id="sugerencias">
-        <button class="sug-btn" onclick="mostrarCalendario()">Agendar cita</button>
+        <button class="sug-btn" onclick="iniciarWizard()">Agendar cita</button>
         <button class="sug-btn" onclick="enviarSugerencia('¿Qué servicios ofrecen?')">Servicios</button>
         <button class="sug-btn" onclick="enviarSugerencia('¿Cuál es el horario?')">Horario</button>
         <button class="sug-btn" onclick="enviarSugerencia('¿Dónde están ubicados?')">Ubicación</button>
@@ -413,7 +580,7 @@
 </div>
 
 <div class="input-area">
-    <button class="btn-agendar-fijo" onclick="mostrarCalendario()">Agendar cita</button>
+    <button class="btn-agendar-fijo" onclick="iniciarWizard()">Agendar cita</button>
     <input type="text" id="input" placeholder="Escriba un mensaje..."
         onkeypress="if(event.key==='Enter') enviar()" />
     <button class="btn-enviar" onclick="enviar()">
@@ -436,12 +603,16 @@ const SERVICIOS = [
     { nombre: "Revisión general", duracion: 30 },
 ]
 
-let estadoCal = {
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+const DIAS = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
+
+let estado = {
+    paso: 1,
     año: new Date().getFullYear(),
     mes: new Date().getMonth(),
-    fechaSeleccionada: null,
-    servicioSeleccionado: null,
-    horaSeleccionada: null,
+    fecha: null,
+    servicio: null,
+    hora: null,
 }
 
 function horaActual() {
@@ -464,8 +635,7 @@ function agregarMensaje(texto, tipo) {
 function mostrarTyping() {
     const chat = document.getElementById("chat")
     const div = document.createElement("div")
-    div.className = "typing"
-    div.id = "typing"
+    div.className = "typing"; div.id = "typing"
     div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`
     chat.appendChild(div)
     chat.scrollTop = chat.scrollHeight
@@ -495,164 +665,224 @@ function enviarSugerencia(texto) {
     enviar()
 }
 
-function mostrarCalendario() {
+// ── Wizard ──
+
+function iniciarWizard() {
     document.getElementById("sugerencias")?.remove()
-    estadoCal = {
+    document.getElementById("wizard-card")?.remove()
+    estado = {
+        paso: 1,
         año: new Date().getFullYear(),
         mes: new Date().getMonth(),
-        fechaSeleccionada: null,
-        servicioSeleccionado: null,
-        horaSeleccionada: null,
+        fecha: null, servicio: null, hora: null,
     }
-    renderCalendario()
+    renderWizard()
 }
 
-function renderCalendario() {
+function renderWizard() {
     const chat = document.getElementById("chat")
-    document.getElementById("cal-card")?.remove()
+    document.getElementById("wizard-card")?.remove()
 
     const card = document.createElement("div")
-    card.className = "calendario-card"
-    card.id = "cal-card"
+    card.className = "wizard-card"
+    card.id = "wizard-card"
+    card.innerHTML = indicadorPasos() + contenidoPaso()
+    chat.appendChild(card)
+    chat.scrollTop = chat.scrollHeight
+}
 
-    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
-    const dias = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
+function indicadorPasos() {
+    const pasos = [
+        { num: 1, label: "Fecha" },
+        { num: 2, label: "Servicio" },
+        { num: 3, label: "Hora" },
+        { num: 4, label: "Confirmar" },
+    ]
+
+    let html = `<div class="pasos">`
+    pasos.forEach((p, i) => {
+        const activo = estado.paso === p.num
+        const completado = estado.paso > p.num
+        html += `
+            <div class="paso-item">
+                <div class="paso-circulo ${activo ? 'activo' : ''} ${completado ? 'completado' : ''}">
+                    ${completado ? '✓' : p.num}
+                </div>
+                <span class="paso-label ${activo ? 'activo' : ''}">${p.label}</span>
+            </div>`
+        if (i < pasos.length - 1) {
+            html += `<div class="paso-linea ${completado ? 'completado' : ''}"></div>`
+        }
+    })
+    html += `</div>`
+    return html
+}
+
+function contenidoPaso() {
+    if (estado.paso === 1) return paso1Fecha()
+    if (estado.paso === 2) return paso2Servicio()
+    if (estado.paso === 3) return paso3Hora()
+    if (estado.paso === 4) return paso4Confirmacion()
+    return ""
+}
+
+function paso1Fecha() {
     const hoy = new Date()
-    const primerDia = new Date(estadoCal.año, estadoCal.mes, 1).getDay()
-    const totalDias = new Date(estadoCal.año, estadoCal.mes + 1, 0).getDate()
+    const primerDia = new Date(estado.año, estado.mes, 1).getDay()
+    const totalDias = new Date(estado.año, estado.mes + 1, 0).getDate()
+    const hoyFecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,"0")}-${String(hoy.getDate()).padStart(2,"0")}`
 
-    let gridHTML = dias.map(d => `<div class="cal-dia-nombre">${d}</div>`).join("")
+    let gridHTML = DIAS.map(d => `<div class="cal-dia-nombre">${d}</div>`).join("")
     for (let i = 0; i < primerDia; i++) gridHTML += `<div></div>`
 
     for (let d = 1; d <= totalDias; d++) {
-        const fecha = `${estadoCal.año}-${String(estadoCal.mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
-        const esHoy = d === hoy.getDate() && estadoCal.mes === hoy.getMonth() && estadoCal.año === hoy.getFullYear()
-        const hoyFecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,"0")}-${String(hoy.getDate()).padStart(2,"0")}`
+        const fecha = `${estado.año}-${String(estado.mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
+        const esHoy = d === hoy.getDate() && estado.mes === hoy.getMonth() && estado.año === hoy.getFullYear()
         const pasado = fecha < hoyFecha
-        const seleccionado = fecha === estadoCal.fechaSeleccionada
+        const seleccionado = fecha === estado.fecha
         gridHTML += `<button class="cal-dia ${esHoy ? 'hoy':''} ${seleccionado ? 'seleccionado':''}"
             ${pasado ? 'disabled' : ''}
-            onclick="seleccionarFecha('${fecha}')">${d}</button>`
+            onclick="elegirFecha('${fecha}')">${d}</button>`
     }
 
-    const serviciosHTML = SERVICIOS.map(s => `
-        <button class="servicio-btn ${estadoCal.servicioSeleccionado === s.nombre ? 'activo' : ''}"
-            onclick="seleccionarServicio('${s.nombre}')">
-            ${s.nombre}
-            <span class="servicio-dur">${s.duracion} min</span>
-        </button>`).join("")
-
-    card.innerHTML = `
-        <div class="cal-titulo">Agendar cita</div>
+    return `
+        <div class="paso-titulo">¿Qué día prefiere?</div>
+        <div class="paso-subtitulo">Seleccione una fecha disponible</div>
         <div class="cal-nav">
             <button onclick="cambiarMes(-1)">‹</button>
-            <span class="cal-nav-mes">${meses[estadoCal.mes]} ${estadoCal.año}</span>
+            <span class="cal-nav-mes">${MESES[estado.mes]} ${estado.año}</span>
             <button onclick="cambiarMes(1)">›</button>
         </div>
         <div class="cal-grid">${gridHTML}</div>
-        <div class="divider-cal"></div>
-        <div class="selector-label">Servicio</div>
-        <div class="servicios-grid">${serviciosHTML}</div>
-        <div id="slots-wrap"></div>
-        <div id="nombre-wrap"></div>
     `
-
-    chat.appendChild(card)
-    chat.scrollTop = chat.scrollHeight
-
-    if (estadoCal.fechaSeleccionada && estadoCal.servicioSeleccionado) {
-        cargarSlots()
-    }
 }
 
-function cambiarMes(delta) {
-    estadoCal.mes += delta
-    if (estadoCal.mes < 0) { estadoCal.mes = 11; estadoCal.año-- }
-    if (estadoCal.mes > 11) { estadoCal.mes = 0; estadoCal.año++ }
-    estadoCal.fechaSeleccionada = null
-    estadoCal.horaSeleccionada = null
-    renderCalendario()
+function paso2Servicio() {
+    const fechaLeg = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
+
+    const serviciosHTML = SERVICIOS.map(s => `
+        <button class="servicio-btn" onclick="elegirServicio('${s.nombre}')">
+            <span class="servicio-nombre">${s.nombre}</span>
+            <span class="servicio-dur">${s.duracion} min</span>
+        </button>`).join("")
+
+    return `
+        <div class="paso-titulo">¿Qué servicio necesita?</div>
+        <div class="paso-subtitulo">Seleccione el tipo de consulta</div>
+        <div class="resumen-seleccion">
+            <span>📅 ${fechaLeg.charAt(0).toUpperCase() + fechaLeg.slice(1)}</span>
+            <button class="resumen-cambiar" onclick="irPaso(1)">Cambiar</button>
+        </div>
+        <div class="servicios-grid">${serviciosHTML}</div>
+    `
 }
 
-function seleccionarFecha(fecha) {
-    estadoCal.fechaSeleccionada = fecha
-    estadoCal.horaSeleccionada = null
-    document.querySelectorAll(".cal-dia").forEach(b => {
-        b.classList.toggle("seleccionado", b.getAttribute("onclick")?.includes(`'${fecha}'`))
-    })
-    document.getElementById("nombre-wrap").innerHTML = ""
-    if (estadoCal.servicioSeleccionado) cargarSlots()
+function paso3Hora() {
+    const fechaLeg = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })
+    return `
+        <div class="paso-titulo">¿A qué hora?</div>
+        <div class="paso-subtitulo">Horarios disponibles para ${estado.servicio}</div>
+        <div class="resumen-seleccion">
+            <span>📅 ${fechaLeg} · 🦷 ${estado.servicio}</span>
+            <button class="resumen-cambiar" onclick="irPaso(2)">Cambiar</button>
+        </div>
+        <div id="slots-container"><div class="cargando">Cargando horarios...</div></div>
+    `
 }
 
-function seleccionarServicio(nombre) {
-    estadoCal.servicioSeleccionado = nombre
-    estadoCal.horaSeleccionada = null
-    document.querySelectorAll(".servicio-btn").forEach(b => {
-        b.classList.toggle("activo", b.getAttribute("onclick")?.includes(`'${nombre}'`))
-        b.style.pointerEvents = "none"
-    })
-    document.getElementById("nombre-wrap").innerHTML = ""
-    if (estadoCal.fechaSeleccionada) {
-        cargarSlots().then(() => {
-            document.querySelectorAll(".servicio-btn").forEach(b => b.style.pointerEvents = "")
-        })
-    } else {
-        setTimeout(() => {
-            document.querySelectorAll(".servicio-btn").forEach(b => b.style.pointerEvents = "")
-        }, 500)
-    }
-}
-
-async function cargarSlots() {
-    const wrap = document.getElementById("slots-wrap")
-    wrap.innerHTML = `<div class="selector-label" style="margin-top:14px">Cargando horarios...</div>`
-
-    const res = await fetch(`/api/slots?fecha=${estadoCal.fechaSeleccionada}&servicio=${encodeURIComponent(estadoCal.servicioSeleccionado)}`)
-    const data = await res.json()
-
-    if (data.slots.length === 0) {
-        wrap.innerHTML = `<div class="selector-label" style="margin-top:14px">Sin horarios disponibles ese día.</div>`
-        return
-    }
-
-    const slotsHTML = data.slots.map(s => `
-        <button class="slot-btn ${estadoCal.horaSeleccionada === s ? 'activo':''}"
-            onclick="seleccionarHora('${s}')">${convertir12h(s)}</button>`).join("")
-
-    wrap.innerHTML = `
-        <div class="selector-label" style="margin-top:14px">Horarios disponibles</div>
-        <div class="slots-grid">${slotsHTML}</div>`
-
-    if (estadoCal.horaSeleccionada) renderNombre()
-}
-
-function seleccionarHora(hora) {
-    estadoCal.horaSeleccionada = hora
-    document.querySelectorAll(".slot-btn").forEach(b => {
-        b.classList.toggle("activo", b.getAttribute("onclick")?.includes(`'${hora}'`))
-        b.style.pointerEvents = "none"
-    })
-    setTimeout(() => {
-        document.querySelectorAll(".slot-btn").forEach(b => b.style.pointerEvents = "")
-        renderNombre()
-    }, 300)
-}
-
-function renderNombre() {
-    const wrap = document.getElementById("nombre-wrap")
-    if (!wrap) return
-    wrap.innerHTML = `
-        <div class="nombre-wrap">
-            <div class="selector-label" style="margin-top:14px">Nombre completo</div>
+function paso4Confirmacion() {
+    const fechaLeg = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    return `
+        <div class="paso-titulo">Confirmar cita</div>
+        <div class="paso-subtitulo">Revise los datos antes de confirmar</div>
+        <div class="resumen-cita">
+            <div class="resumen-fila">
+                <span class="resumen-etiqueta">Fecha</span>
+                <span class="resumen-valor">${fechaLeg.charAt(0).toUpperCase() + fechaLeg.slice(1)}</span>
+            </div>
+            <div class="resumen-fila">
+                <span class="resumen-etiqueta">Hora</span>
+                <span class="resumen-valor">${convertir12h(estado.hora)}</span>
+            </div>
+            <div class="resumen-fila">
+                <span class="resumen-etiqueta">Servicio</span>
+                <span class="resumen-valor">${estado.servicio}</span>
+            </div>
+        </div>
+        <div class="nombre-input-wrap">
+            <label>Su nombre completo</label>
             <input type="text" id="nombre-input" placeholder="Ej. María González" />
         </div>
         <button class="btn-confirmar" onclick="confirmarCita()">Confirmar cita</button>
     `
 }
 
+function cambiarMes(delta) {
+    estado.mes += delta
+    if (estado.mes < 0) { estado.mes = 11; estado.año-- }
+    if (estado.mes > 11) { estado.mes = 0; estado.año++ }
+    renderWizard()
+}
+
+function irPaso(paso) {
+    estado.paso = paso
+    if (paso <= 2) estado.hora = null
+    if (paso <= 1) estado.servicio = null
+    renderWizard()
+}
+
+function elegirFecha(fecha) {
+    estado.fecha = fecha
+    estado.paso = 2
+    estado.servicio = null
+    estado.hora = null
+    renderWizard()
+}
+
+function elegirServicio(nombre) {
+    estado.servicio = nombre
+    estado.paso = 3
+    estado.hora = null
+    renderWizard()
+    cargarSlots()
+}
+
+async function cargarSlots() {
+    const container = document.getElementById("slots-container")
+    if (!container) return
+
+    const res = await fetch(`/api/slots?fecha=${estado.fecha}&servicio=${encodeURIComponent(estado.servicio)}`)
+    const data = await res.json()
+
+    if (!document.getElementById("slots-container")) return
+
+    if (data.slots.length === 0) {
+        container.innerHTML = `
+            <div class="sin-slots">No hay horarios disponibles para este día.<br>Por favor seleccione otra fecha.</div>
+            <button class="btn-confirmar" style="margin-top:12px;background:var(--verde-mid)" onclick="irPaso(1)">Elegir otra fecha</button>
+        `
+        return
+    }
+
+    const slotsHTML = data.slots.map(s => `
+        <button class="slot-btn" onclick="elegirHora('${s}')">${convertir12h(s)}</button>`).join("")
+
+    container.innerHTML = `<div class="slots-grid">${slotsHTML}</div>`
+}
+
+function elegirHora(hora) {
+    estado.hora = hora
+    estado.paso = 4
+    renderWizard()
+}
+
 async function confirmarCita() {
     const nombre = document.getElementById("nombre-input")?.value.trim()
-    if (!nombre) { alert("Por favor ingrese su nombre completo."); return }
+    if (!nombre) {
+        document.getElementById("nombre-input").style.borderColor = "red"
+        document.getElementById("nombre-input").placeholder = "Por favor ingrese su nombre"
+        return
+    }
 
     const btn = document.querySelector(".btn-confirmar")
     btn.disabled = true
@@ -663,24 +893,23 @@ async function confirmarCita() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             nombre,
-            servicio: estadoCal.servicioSeleccionado,
-            fecha: estadoCal.fechaSeleccionada,
-            hora: estadoCal.horaSeleccionada
+            servicio: estado.servicio,
+            fecha: estado.fecha,
+            hora: estado.hora
         })
     })
 
     const data = await res.json()
-    document.getElementById("cal-card")?.remove()
+    document.getElementById("wizard-card")?.remove()
 
     if (res.ok) {
-        const fechaLegible = new Date(estadoCal.fechaSeleccionada + "T12:00:00").toLocaleDateString("es-MX", {
+        const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
-        const hora12 = convertir12h(estadoCal.horaSeleccionada)
-        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estadoCal.servicioSeleccionado}\n**Fecha:** ${fechaLegible}\n**Hora:** ${hora12}\n\nLa doctora le confirmará próximamente. Le esperamos en MOSADENT.`, "bot")
+        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en MOSADENT!`, "bot")
     } else {
         agregarMensaje(`Lo sentimos, ese horario ya no está disponible. Por favor seleccione otro.`, "bot")
-        setTimeout(mostrarCalendario, 1000)
+        setTimeout(iniciarWizard, 1000)
     }
 }
 
