@@ -155,8 +155,21 @@ def calcular_slots(fecha: str, duracion: int):
     cursor_time = datetime.strptime(f"{fecha} {HORA_INICIO}:00", "%Y-%m-%d %H:%M")
     fin_dia = datetime.strptime(f"{fecha} {HORA_FIN}:00", "%Y-%m-%d %H:%M")
 
+    hoy = date.today().strftime("%Y-%m-%d")
+    es_hoy = fecha == hoy
+    ahora = datetime.now() + timedelta(hours=2) if es_hoy else None
+
     while cursor_time + timedelta(minutes=duracion) <= fin_dia:
         fin_slot = cursor_time + timedelta(minutes=duracion)
+
+        if es_hoy and cursor_time <= datetime.now():
+            cursor_time += timedelta(minutes=30)
+            continue
+
+        if es_hoy and ahora and cursor_time < ahora:
+            cursor_time += timedelta(minutes=30)
+            continue
+
         disponible = all(
             fin_slot <= inicio or cursor_time >= fin
             for inicio, fin in ocupados
