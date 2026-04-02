@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import anthropic
 import sqlite3
-import json
 import os
 from datetime import date, datetime, timedelta
 
@@ -166,22 +165,6 @@ def calcular_slots(fecha: str, duracion: int):
 
     return slots
 
-    slots = []
-    cursor_time = datetime.strptime(f"{fecha} {HORA_INICIO}:00", "%Y-%m-%d %H:%M")
-    fin_dia = datetime.strptime(f"{fecha} {HORA_FIN}:00", "%Y-%m-%d %H:%M")
-
-    while cursor_time + timedelta(minutes=duracion) <= fin_dia:
-        fin_slot = cursor_time + timedelta(minutes=duracion)
-        disponible = all(
-            fin_slot <= inicio or cursor_time >= fin
-            for inicio, fin in ocupados
-        )
-        if disponible:
-            slots.append(cursor_time.strftime("%H:%M"))
-        cursor_time += timedelta(minutes=30)
-
-    return slots
-
 init_db()
 
 # ============================================
@@ -209,6 +192,11 @@ async def index():
 
 @app.get("/citas", response_class=HTMLResponse)
 async def panel_citas():
+    with open("templates/dashboard.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def panel_dashboard():
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
         return f.read()
 
