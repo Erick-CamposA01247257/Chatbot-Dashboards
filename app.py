@@ -8,12 +8,11 @@ import os
 from datetime import date, datetime, timedelta
 
 load_dotenv()
-import sys
-print(f"API KEY EXISTS: {'ANTHROPIC_API_KEY' in os.environ}", file=sys.stderr)
-print(f"API KEY VALUE: {os.environ.get('ANTHROPIC_API_KEY', 'NOT FOUND')[:20]}", file=sys.stderr)
+
 
 app = FastAPI()
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
 
 # ============================================
 # INICIO — Configuración
