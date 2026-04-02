@@ -629,6 +629,26 @@ function agregarMensaje(texto, tipo) {
         .replace(/\n/g, '<br>')
     }<div class="msg-time">${horaActual()}</div>`
     chat.appendChild(div)
+
+    if (tipo === "bot") {
+        const btnDiv = document.createElement("div")
+        btnDiv.style.cssText = "align-self:flex-start; margin-top:-4px;"
+        btnDiv.innerHTML = `<button onclick="iniciarWizard()" style="
+            background: var(--verde);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.2px;
+            transition: background 0.2s;
+        ">📅 Agendar cita</button>`
+        chat.appendChild(btnDiv)
+    }
+
     chat.scrollTop = chat.scrollHeight
 }
 
