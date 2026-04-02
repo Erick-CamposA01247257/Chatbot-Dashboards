@@ -527,7 +527,8 @@ function renderCalendario() {
     for (let d = 1; d <= totalDias; d++) {
         const fecha = `${estadoCal.año}-${String(estadoCal.mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
         const esHoy = d === hoy.getDate() && estadoCal.mes === hoy.getMonth() && estadoCal.año === hoy.getFullYear()
-        const pasado = new Date(fecha) < new Date(hoy.toDateString())
+        const hoyFecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,"0")}-${String(hoy.getDate()).padStart(2,"0")}`
+        const pasado = fecha < hoyFecha
         const seleccionado = fecha === estadoCal.fechaSeleccionada
         gridHTML += `<button class="cal-dia ${esHoy ? 'hoy':''} ${seleccionado ? 'seleccionado':''}"
             ${pasado ? 'disabled' : ''}
