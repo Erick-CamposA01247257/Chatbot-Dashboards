@@ -225,9 +225,8 @@ async def api_login(datos: LoginRequest, response: Response):
             value=token,
             httponly=True,
             max_age=86400,
-            samesite="lax",
-            secure=True
-        )
+            samesite="lax"
+)
         return JSONResponse(content={"status": "ok"})
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
