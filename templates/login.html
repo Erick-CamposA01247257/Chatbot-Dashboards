@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOSADENT — Acceso</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --azul: #3B82F6;
+            --azul-light: #EFF6FF;
+            --azul-mid: #BFDBFE;
+            --azul-dark: #1D4ED8;
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --borde: #E2E8F0;
+            --texto: #0F172A;
+            --texto-mid: #475569;
+            --texto-muted: #94A3B8;
+            --error: #EF4444;
+            --error-light: #FEF2F2;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border: 1px solid var(--borde);
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .logo-dot {
+            width: 36px; height: 36px;
+            background: var(--azul);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .logo-dot svg { width: 18px; height: 18px; fill: white; }
+
+        .logo-texto h1 {
+            font-size: 16px; font-weight: 600;
+            color: var(--texto); letter-spacing: -0.3px;
+        }
+
+        .logo-texto p {
+            font-size: 12px; color: var(--texto-muted);
+            font-weight: 300;
+        }
+
+        .titulo {
+            font-size: 20px; font-weight: 600;
+            color: var(--texto); margin-bottom: 6px;
+        }
+
+        .subtitulo {
+            font-size: 13px; color: var(--texto-muted);
+            font-weight: 300; margin-bottom: 24px;
+        }
+
+        .campo {
+            margin-bottom: 16px;
+        }
+
+        .campo label {
+            display: block;
+            font-size: 12px; font-weight: 500;
+            color: var(--texto-mid);
+            text-transform: uppercase; letter-spacing: 0.4px;
+            margin-bottom: 6px;
+        }
+
+        .campo input {
+            width: 100%;
+            border: 1px solid var(--borde);
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 14px;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--texto);
+            transition: border-color 0.2s;
+        }
+
+        .campo input:focus { border-color: var(--azul); }
+
+        .error-msg {
+            display: none;
+            background: var(--error-light);
+            border: 1px solid #FECACA;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--error);
+            margin-bottom: 16px;
+        }
+
+        .error-msg.visible { display: block; }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: var(--azul);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px; font-weight: 500;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+
+        .btn-login:hover { background: var(--azul-dark); }
+        .btn-login:disabled { background: var(--texto-muted); cursor: default; }
+
+        .footer-nota {
+            text-align: center;
+            font-size: 11px;
+            color: var(--texto-muted);
+            margin-top: 20px;
+            font-weight: 300;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo">
+        <div class="logo-dot">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/></svg>
+        </div>
+        <div class="logo-texto">
+            <h1>MOSADENT</h1>
+            <p>Panel de administración</p>
+        </div>
+    </div>
+
+    <div class="titulo">Bienvenida</div>
+    <div class="subtitulo">Ingrese sus credenciales para acceder al panel</div>
+
+    <div class="error-msg" id="error-msg">Usuario o contraseña incorrectos</div>
+
+    <div class="campo">
+        <label>Usuario</label>
+        <input type="text" id="usuario" placeholder="Ingrese su usuario"
+            onkeypress="if(event.key==='Enter') login()" autocomplete="username" />
+    </div>
+
+    <div class="campo">
+        <label>Contraseña</label>
+        <input type="password" id="password" placeholder="Ingrese su contraseña"
+            onkeypress="if(event.key==='Enter') login()" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="btn-login" onclick="login()">Ingresar</button>
+
+    <div class="footer-nota">Acceso exclusivo para personal autorizado</div>
+</div>
+
+<script>
+async function login() {
+    const usuario = document.getElementById("usuario").value.trim()
+    const password = document.getElementById("password").value.trim()
+    const btn = document.getElementById("btn-login")
+    const errorMsg = document.getElementById("error-msg")
+
+    if (!usuario || !password) return
+
+    btn.disabled = true
+    btn.textContent = "Verificando..."
+    errorMsg.classList.remove("visible")
+
+    const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario, password })
+    })
+
+    if (res.ok) {
+        window.location.href = "/dashboard"
+    } else {
+        errorMsg.classList.add("visible")
+        btn.disabled = false
+        btn.textContent = "Ingresar"
+        document.getElementById("password").value = ""
+    }
+}
+</script>
+</body>
+</html>

@@ -1,22 +1,23 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Response, Depends
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import anthropic
 import sqlite3
 import os
+import hashlib
+import secrets
 from datetime import date, datetime, timedelta
 
 load_dotenv()
 
-
 app = FastAPI()
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
+DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "doctora")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "mosadent2026")
+SESSION_SECRET = os.environ.get("SESSION_SECRET", "secret_local_dev")
 
-# ============================================
-# INICIO — Configuración
-# ============================================
+sesiones_activas = set()
 
 DURACIONES = {
     "limpieza": 30,
@@ -142,6 +143,7 @@ def get_duracion(servicio: str) -> int:
         if key in servicio_lower or servicio_lower in key:
             return val
     return DURACION_DEFAULT
+
 def calcular_slots(fecha: str, duracion: int):
     citas_del_dia = obtener_citas_por_fecha(fecha)
     ocupados = []
@@ -180,6 +182,14 @@ def calcular_slots(fecha: str, duracion: int):
 
     return slots
 
+# ============================================
+# PROCESO — Auth
+# ============================================
+
+def verificar_sesion(request: Request):
+    token = request.cookies.get("session_token")
+    return token and token in sesiones_activas
+
 init_db()
 
 # ============================================
@@ -196,8 +206,12 @@ class CitaRequest(BaseModel):
     fecha: str
     hora: str
 
+class LoginRequest(BaseModel):
+    usuario: str
+    password: str
+
 # ============================================
-# SALIDA — Endpoints
+# SALIDA — Endpoints públicos
 # ============================================
 
 @app.get("/", response_class=HTMLResponse)
@@ -205,18 +219,56 @@ async def index():
     with open("templates/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_page():
+    with open("templates/login.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.post("/api/login")
+async def api_login(datos: LoginRequest, response: Response):
+    if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
+        token = secrets.token_hex(32)
+        sesiones_activas.add(token)
+        response.set_cookie(
+            key="session_token",
+            value=token,
+            httponly=True,
+            max_age=86400,
+            samesite="lax"
+        )
+        return JSONResponse(content={"status": "ok"})
+    return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
+
+@app.get("/api/logout")
+async def logout(request: Request, response: Response):
+    token = request.cookies.get("session_token")
+    if token:
+        sesiones_activas.discard(token)
+    response.delete_cookie("session_token")
+    return RedirectResponse(url="/login")
+
+# ============================================
+# SALIDA — Endpoints protegidos
+# ============================================
+
 @app.get("/citas", response_class=HTMLResponse)
-async def panel_citas():
+async def panel_citas(request: Request):
+    if not verificar_sesion(request):
+        return RedirectResponse(url="/login")
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
         return f.read()
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def panel_dashboard():
+async def panel_dashboard(request: Request):
+    if not verificar_sesion(request):
+        return RedirectResponse(url="/login")
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
         return f.read()
 
 @app.get("/api/citas")
-async def api_citas():
+async def api_citas(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
     citas = obtener_citas()
     return JSONResponse(content={"total": len(citas), "citas": citas})
 
@@ -241,7 +293,7 @@ async def api_agendar(cita: CitaRequest):
 @app.post("/chat")
 async def chat(mensaje: Mensaje):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-    
+
     if mensaje.session_id not in conversaciones:
         conversaciones[mensaje.session_id] = []
 
