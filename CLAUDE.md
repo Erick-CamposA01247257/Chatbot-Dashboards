@@ -174,14 +174,64 @@ Auto-refresh cada 30 segundos con `setInterval(cargarCitas, 30000)`.
 
 ## Deploy en Railway
 
-- URL producción: `web-production-76d49.up.railway.app`
+- URL producción: `mosadent.up.railway.app`
 - Deploy automático al hacer push a `main`
 - Variables de entorno en Railway (sin comillas en los valores):
   - `ANTHROPIC_API_KEY`
   - `DASHBOARD_USER`
   - `DASHBOARD_PASSWORD`
   - `SESSION_SECRET`
+  - `DATABASE_URL` → referencia: `${{Postgres.DATABASE_URL}}`
 - Railway puede tener múltiples réplicas — por eso el auth es determinístico y no guarda estado en memoria
+
+---
+
+## Onboarding de nuevo cliente
+
+### Información que necesitas del cliente
+- Nombre oficial del consultorio
+- Dirección completa
+- Teléfono de contacto
+- Horario de atención (días y horas)
+- Servicios que ofrecen con sus nombres exactos
+- Logo (PNG o SVG, fondo transparente)
+- Usuario y contraseña para el dashboard
+- Número de WhatsApp (para Twilio, Fase 3)
+- ¿Tienen dominio propio?
+- Preguntas frecuentes o info adicional para el chatbot
+
+### Pasos para desplegar un cliente nuevo
+
+1. **Copiar el proyecto**
+   ```bash
+   cp -r consultorio-chatbot nuevo-cliente
+   cd nuevo-cliente
+   git init && git remote add origin <nuevo-repo>
+   ```
+
+2. **Actualizar la información del consultorio en `app.py`**
+   - Editar `SISTEMA_MOSADENT` con nombre, dirección, teléfono, horario y servicios del cliente
+   - Renombrar la variable si quieres (ej. `SISTEMA_CLIENTE`)
+
+3. **Actualizar el frontend**
+   - Cambiar "MOSADENT" por el nombre del cliente en `index.html`, `dashboard.html`, `login.html`
+   - Cambiar colores si el cliente quiere su identidad visual (variables CSS en `:root`)
+   - Cambiar logo si aplica
+
+4. **Crear proyecto en Railway**
+   - New Project → Deploy from GitHub repo
+   - Agregar plugin PostgreSQL
+   - Configurar variables de entorno:
+     - `ANTHROPIC_API_KEY` (tu key o la del cliente)
+     - `DASHBOARD_USER` / `DASHBOARD_PASSWORD` / `SESSION_SECRET`
+     - `DATABASE_URL` → `${{Postgres.DATABASE_URL}}`
+   - Generar dominio o conectar dominio propio del cliente
+
+5. **Verificar**
+   - Hacer una cita de prueba desde el chat
+   - Verificar que aparece en el dashboard
+   - Confirmar y eliminar la cita de prueba
+   - Entregar URL y credenciales al cliente
 
 ---
 
@@ -198,7 +248,7 @@ Auto-refresh cada 30 segundos con `setInterval(cargarCitas, 30000)`.
 
 ## Pendientes conocidos
 
-1. **Persistencia de citas en Railway** — migrar de SQLite a PostgreSQL para que las citas no se pierdan al reiniciar el contenedor
-2. **Login** — el sistema de auth con cookies/headers está en desarrollo, actualmente en proceso de debug
-3. **Twilio WhatsApp** — Fase 3 del plan, integración pendiente para cuando haya cliente pagado
-4. **Multi-tenant** — actualmente un deploy por cliente, cada uno con sus propias variables y DB
+1. **Twilio WhatsApp** — al confirmar cita en dashboard, enviar WhatsApp al paciente. También recordatorio 24h antes
+2. **Multi-tenant** — migrar a un solo deploy con tabla `consultorios` y `consultorio_id` en citas. Hacer cuando haya 3+ clientes
+3. **Bloquear horarios** — que la doctora pueda marcar días/horas como no disponibles
+4. **Historial del paciente** — ver citas anteriores por número de teléfono
