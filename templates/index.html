@@ -843,8 +843,12 @@ function paso4Confirmacion() {
             <input type="text" id="nombre-input" placeholder="Ej. María González" />
         </div>
         <div class="nombre-input-wrap" style="margin-top:10px">
-            <label>Número de teléfono</label>
-            <input type="tel" id="telefono-input" placeholder="Ej. 81 1234 5678" />
+            <label>Número de teléfono (10 dígitos)</label>
+            <input type="tel" id="telefono-input" placeholder="Ej. 8112345678" maxlength="10" inputmode="numeric" />
+        </div>
+        <div class="nombre-input-wrap" style="margin-top:10px">
+            <label>Confirmar teléfono</label>
+            <input type="tel" id="telefono-confirm-input" placeholder="Repita su número" maxlength="10" inputmode="numeric" />
         </div>
         <button class="btn-confirmar" onclick="confirmarCita()">Confirmar cita</button>
     `
@@ -911,10 +915,27 @@ function elegirHora(hora) {
 
 async function confirmarCita() {
     const nombre = document.getElementById("nombre-input")?.value.trim()
-    const telefono = document.getElementById("telefono-input")?.value.trim() || ""
+    const telefono = document.getElementById("telefono-input")?.value.replace(/\D/g, "")
+    const telefonoConfirm = document.getElementById("telefono-confirm-input")?.value.replace(/\D/g, "")
+
     if (!nombre) {
         document.getElementById("nombre-input").style.borderColor = "red"
         document.getElementById("nombre-input").placeholder = "Por favor ingrese su nombre"
+        return
+    }
+
+    if (telefono && telefono.length !== 10) {
+        document.getElementById("telefono-input").style.borderColor = "red"
+        document.getElementById("telefono-input").value = ""
+        document.getElementById("telefono-input").placeholder = "Debe tener 10 dígitos"
+        document.getElementById("telefono-confirm-input").value = ""
+        return
+    }
+
+    if (telefono && telefono !== telefonoConfirm) {
+        document.getElementById("telefono-confirm-input").style.borderColor = "red"
+        document.getElementById("telefono-confirm-input").value = ""
+        document.getElementById("telefono-confirm-input").placeholder = "Los números no coinciden"
         return
     }
 
