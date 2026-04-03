@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Request, Response, Depends
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import anthropic
 import sqlite3
 import os
-import hashlib
 import secrets
 from datetime import date, datetime, timedelta
 
@@ -15,9 +14,6 @@ app = FastAPI()
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "doctora")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "mosadent2026")
-SESSION_SECRET = os.environ.get("SESSION_SECRET", "secret_local_dev")
-
-sesiones_activas = set()
 
 DURACIONES = {
     "limpieza": 30,
@@ -105,6 +101,12 @@ def init_db():
             fecha_registro TEXT NOT NULL
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sesiones (
+            token TEXT PRIMARY KEY,
+            creado TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -183,12 +185,33 @@ def calcular_slots(fecha: str, duracion: int):
     return slots
 
 # ============================================
-# PROCESO — Auth
+# PROCESO — Auth con SQLite
 # ============================================
 
 def verificar_sesion(request: Request):
     token = request.cookies.get("session_token")
-    return token and token in sesiones_activas
+    if not token:
+        return False
+    conn = sqlite3.connect("citas.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT token FROM sesiones WHERE token = ?", (token,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado is not None
+
+def guardar_sesion(token: str):
+    conn = sqlite3.connect("citas.db")
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR REPLACE INTO sesiones (token, creado) VALUES (?, ?)", (token, str(datetime.now())))
+    conn.commit()
+    conn.close()
+
+def eliminar_sesion(token: str):
+    conn = sqlite3.connect("citas.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sesiones WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
 
 init_db()
 
@@ -228,7 +251,7 @@ async def login_page():
 async def api_login(datos: LoginRequest, response: Response):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         token = secrets.token_hex(32)
-        sesiones_activas.add(token)
+        guardar_sesion(token)
         response.set_cookie(
             key="session_token",
             value=token,
@@ -236,8 +259,7 @@ async def api_login(datos: LoginRequest, response: Response):
             max_age=86400,
             samesite="lax",
             secure=True
-)
-        
+        )
         return JSONResponse(content={"status": "ok"})
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
@@ -245,7 +267,7 @@ async def api_login(datos: LoginRequest, response: Response):
 async def logout(request: Request, response: Response):
     token = request.cookies.get("session_token")
     if token:
-        sesiones_activas.discard(token)
+        eliminar_sesion(token)
     response.delete_cookie("session_token")
     return RedirectResponse(url="/login")
 
