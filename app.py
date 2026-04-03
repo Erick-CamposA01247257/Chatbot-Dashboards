@@ -142,7 +142,6 @@ def get_duracion(servicio: str) -> int:
         if key in servicio_lower or servicio_lower in key:
             return val
     return DURACION_DEFAULT
-
 def calcular_slots(fecha: str, duracion: int):
     citas_del_dia = obtener_citas_por_fecha(fecha)
     ocupados = []
@@ -151,22 +150,23 @@ def calcular_slots(fecha: str, duracion: int):
         fin = inicio + timedelta(minutes=c["duracion"])
         ocupados.append((inicio, fin))
 
+    ahora_mexico = datetime.now() - timedelta(hours=6)
+    hoy = ahora_mexico.strftime("%Y-%m-%d")
+    es_hoy = fecha == hoy
+    minimo = ahora_mexico + timedelta(hours=2) if es_hoy else None
+
     slots = []
     cursor_time = datetime.strptime(f"{fecha} {HORA_INICIO}:00", "%Y-%m-%d %H:%M")
     fin_dia = datetime.strptime(f"{fecha} {HORA_FIN}:00", "%Y-%m-%d %H:%M")
 
-    hoy = date.today().strftime("%Y-%m-%d")
-    es_hoy = fecha == hoy
-    ahora = datetime.now() - timedelta(hours=6) + timedelta(hours=2) if es_hoy else None
-
     while cursor_time + timedelta(minutes=duracion) <= fin_dia:
         fin_slot = cursor_time + timedelta(minutes=duracion)
 
-        if es_hoy and cursor_time <= datetime.now() - timedelta(hours=6):
+        if es_hoy and cursor_time <= ahora_mexico:
             cursor_time += timedelta(minutes=30)
             continue
 
-        if es_hoy and ahora and cursor_time < ahora:
+        if es_hoy and minimo and cursor_time < minimo:
             cursor_time += timedelta(minutes=30)
             continue
 
