@@ -107,13 +107,13 @@ def init_db():
     conn.commit()
     conn.close()
 
-def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str):
+def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str, confirmada: bool = False):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
-    """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono))
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono, confirmada))
     conn.commit()
     conn.close()
 
@@ -292,6 +292,20 @@ async def api_agendar(cita: CitaRequest):
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono)
+    return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
+
+@app.post("/api/agendar-dashboard")
+async def api_agendar_dashboard(cita: CitaRequest, request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    duracion = get_duracion(cita.servicio)
+    slots = calcular_slots(cita.fecha, duracion)
+    if cita.hora not in slots:
+        return JSONResponse(
+            status_code=409,
+            content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
+        )
+    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.patch("/api/citas/{cita_id}/confirmar")

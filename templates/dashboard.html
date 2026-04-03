@@ -411,6 +411,35 @@
         }
         .btn-modal-eliminar:hover { background: #FEE2E2; }
 
+        /* ── Modal nueva cita ── */
+        .form-campo { margin-bottom: 14px; }
+        .form-campo label {
+            display: block; font-size: 11px; font-weight: 600;
+            color: var(--texto-muted); text-transform: uppercase;
+            letter-spacing: 0.4px; margin-bottom: 5px;
+        }
+        .form-campo input, .form-campo select {
+            width: 100%; border: 1px solid var(--borde);
+            border-radius: 8px; padding: 9px 12px;
+            font-size: 13px; font-family: 'DM Sans', sans-serif;
+            background: var(--bg); color: var(--texto);
+            outline: none; transition: border-color 0.2s;
+        }
+        .form-campo input:focus, .form-campo select:focus { border-color: var(--azul); }
+        .form-campo input.error, .form-campo select.error { border-color: #EF4444; }
+        .form-error { font-size: 11px; color: #EF4444; margin-top: 4px; display: none; }
+        .form-error.visible { display: block; }
+
+        .btn-nueva-cita {
+            padding: 6px 12px;
+            background: var(--azul); color: white;
+            border: none; border-radius: 8px;
+            font-size: 12px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-nueva-cita:hover { background: var(--azul-dark); }
+
         /* ── Responsive móvil ── */
         @media (max-width: 640px) {
             .header-divider { display: none; }
@@ -450,12 +479,58 @@
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
+        <button class="btn-nueva-cita" onclick="abrirNuevaCita()">+ Nueva cita</button>
     </div>
 </div>
 
 <div class="tabs-movil">
     <button class="tab-btn activo" id="tab-agenda" onclick="cambiarTab('agenda')">📋 Agenda</button>
     <button class="tab-btn" id="tab-cal" onclick="cambiarTab('cal')">📅 Calendario</button>
+</div>
+
+<div class="modal-overlay" id="modal-nueva-overlay" onclick="cerrarNuevaCita(event)">
+    <div class="modal" id="modal-nueva">
+        <div class="modal-header">
+            <div class="modal-titulo">Nueva cita</div>
+            <button class="modal-close" onclick="cerrarNuevaCitaDirecto()">✕</button>
+        </div>
+        <div class="form-campo">
+            <label>Nombre del paciente</label>
+            <input type="text" id="nc-nombre" placeholder="Ej. María González" maxlength="100" />
+        </div>
+        <div class="form-campo">
+            <label>Teléfono</label>
+            <input type="tel" id="nc-telefono" placeholder="10 dígitos" maxlength="10" inputmode="numeric" />
+        </div>
+        <div class="form-campo">
+            <label>Servicio</label>
+            <select id="nc-servicio" onchange="cargarSlotsNuevaCita()">
+                <option value="">Seleccione un servicio</option>
+                <option value="Limpieza dental">Limpieza dental (30 min)</option>
+                <option value="Revisión y diagnóstico general">Revisión y diagnóstico general (30 min)</option>
+                <option value="Blanqueamiento dental">Blanqueamiento dental (60 min)</option>
+                <option value="Resinas y restauraciones">Resinas y restauraciones (60 min)</option>
+                <option value="Extracciones">Extracciones (45 min)</option>
+                <option value="Ortodoncia y brackets">Ortodoncia y brackets (60 min)</option>
+                <option value="Implantes dentales">Implantes dentales (90 min)</option>
+            </select>
+        </div>
+        <div class="form-campo">
+            <label>Fecha</label>
+            <input type="date" id="nc-fecha" onchange="cargarSlotsNuevaCita()" />
+        </div>
+        <div class="form-campo">
+            <label>Hora disponible</label>
+            <select id="nc-hora">
+                <option value="">Seleccione fecha y servicio primero</option>
+            </select>
+            <div class="form-error" id="nc-error"></div>
+        </div>
+        <div class="modal-acciones">
+            <button class="btn-modal-confirmar" id="btn-nc-guardar" onclick="guardarNuevaCita()">Guardar cita</button>
+            <button class="btn-modal-eliminar" onclick="cerrarNuevaCitaDirecto()">Cancelar</button>
+        </div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
@@ -759,6 +834,93 @@
         const suffix = h >= 12 ? "PM" : "AM"
         const h12 = h % 12 || 12
         return `${h12}:${String(m).padStart(2,"0")} ${suffix}`
+    }
+
+    // ── Nueva cita ──
+    function abrirNuevaCita() {
+        const hoy = new Date().toISOString().split("T")[0]
+        document.getElementById("nc-nombre").value = ""
+        document.getElementById("nc-telefono").value = ""
+        document.getElementById("nc-servicio").value = ""
+        document.getElementById("nc-fecha").value = fechaSeleccionada >= hoy ? fechaSeleccionada : hoy
+        document.getElementById("nc-fecha").min = hoy
+        document.getElementById("nc-hora").innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
+        document.getElementById("nc-error").classList.remove("visible")
+        document.getElementById("btn-nc-guardar").disabled = false
+        document.getElementById("btn-nc-guardar").textContent = "Guardar cita"
+        document.getElementById("modal-nueva-overlay").classList.add("visible")
+        cargarSlotsNuevaCita()
+    }
+
+    function cerrarNuevaCita(e) {
+        if (e.target === document.getElementById("modal-nueva-overlay")) cerrarNuevaCitaDirecto()
+    }
+
+    function cerrarNuevaCitaDirecto() {
+        document.getElementById("modal-nueva-overlay").classList.remove("visible")
+    }
+
+    async function cargarSlotsNuevaCita() {
+        const servicio = document.getElementById("nc-servicio").value
+        const fecha = document.getElementById("nc-fecha").value
+        const selectHora = document.getElementById("nc-hora")
+        if (!servicio || !fecha) {
+            selectHora.innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
+            return
+        }
+        selectHora.innerHTML = `<option value="">Cargando...</option>`
+        const res = await fetch(`/api/slots?fecha=${fecha}&servicio=${encodeURIComponent(servicio)}`)
+        const data = await res.json()
+        if (data.slots.length === 0) {
+            selectHora.innerHTML = `<option value="">Sin horarios disponibles</option>`
+        } else {
+            selectHora.innerHTML = `<option value="">Seleccione hora</option>` +
+                data.slots.map(s => `<option value="${s}">${convertir12h(s)}</option>`).join("")
+        }
+    }
+
+    async function guardarNuevaCita() {
+        const nombre = document.getElementById("nc-nombre").value.trim()
+        const telefono = document.getElementById("nc-telefono").value.replace(/\D/g, "")
+        const servicio = document.getElementById("nc-servicio").value
+        const fecha = document.getElementById("nc-fecha").value
+        const hora = document.getElementById("nc-hora").value
+        const errorEl = document.getElementById("nc-error")
+
+        errorEl.classList.remove("visible")
+
+        if (!nombre || !servicio || !fecha || !hora) {
+            errorEl.textContent = "Complete todos los campos obligatorios."
+            errorEl.classList.add("visible")
+            return
+        }
+        if (telefono && telefono.length !== 10) {
+            errorEl.textContent = "El teléfono debe tener 10 dígitos."
+            errorEl.classList.add("visible")
+            return
+        }
+
+        const btn = document.getElementById("btn-nc-guardar")
+        btn.disabled = true
+        btn.textContent = "Guardando..."
+
+        const res = await fetch("/api/agendar-dashboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre, telefono, servicio, fecha, hora })
+        })
+
+        if (res.ok) {
+            cerrarNuevaCitaDirecto()
+            fechaSeleccionada = fecha
+            await cargarCitas()
+        } else {
+            errorEl.textContent = "Ese horario ya no está disponible."
+            errorEl.classList.add("visible")
+            btn.disabled = false
+            btn.textContent = "Guardar cita"
+            await cargarSlotsNuevaCita()
+        }
     }
 
     let citaModal = null
