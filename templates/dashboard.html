@@ -536,6 +536,15 @@
 </div>
 
 <script>
+    function escaparHTML(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+    }
+
     const HORA_INICIO = 10
     const HORA_FIN = 19
     const ALTURA_HORA = 72
@@ -629,11 +638,11 @@
                     ${citas ? citas.map(c => `
                         <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" onclick="abrirModal(${c.id})" style="cursor:pointer">
                             <div class="cita-card-header">
-                                <div class="cita-paciente">${c.nombre}</div>
+                                <div class="cita-paciente">${escaparHTML(c.nombre)}</div>
                                 <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
                             </div>
                             <div class="cita-detalle">
-                                <span>${c.servicio}</span>
+                                <span>${escaparHTML(c.servicio)}</span>
                                 <div class="cita-detalle-sep"></div>
                                 <span>${c.duracion} min</span>
                             </div>
@@ -708,8 +717,8 @@
             bloque.style.cursor = "pointer"
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
-                <div class="grid-bloque-nombre">${cita.nombre}</div>
-                <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${cita.servicio}</div>`
+                <div class="grid-bloque-nombre">${escaparHTML(cita.nombre)}</div>
+                <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
         })
     }

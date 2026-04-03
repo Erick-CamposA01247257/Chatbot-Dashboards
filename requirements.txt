@@ -3,3 +3,4 @@ uvicorn
 anthropic
 python-dotenv
 psycopg2-binary
+slowapi

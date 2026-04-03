@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import anthropic
 import psycopg2
 import os
@@ -11,7 +14,10 @@ from datetime import date, datetime, timedelta
 
 load_dotenv()
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "doctora")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "mosadent2026")
@@ -196,19 +202,19 @@ init_db()
 # ============================================
 
 class Mensaje(BaseModel):
-    texto: str
-    session_id: str = "default"
+    texto: str = Field(..., max_length=1000)
+    session_id: str = Field("default", max_length=100)
 
 class CitaRequest(BaseModel):
-    nombre: str
-    servicio: str
-    fecha: str
-    hora: str
-    telefono: str = ""
+    nombre: str = Field(..., max_length=100)
+    servicio: str = Field(..., max_length=100)
+    fecha: str = Field(..., max_length=10)
+    hora: str = Field(..., max_length=5)
+    telefono: str = Field("", max_length=20)
 
 class LoginRequest(BaseModel):
-    usuario: str
-    password: str
+    usuario: str = Field(..., max_length=50)
+    password: str = Field(..., max_length=100)
 
 # ============================================
 # SALIDA — Endpoints públicos
@@ -225,14 +231,15 @@ async def login_page():
         return f.read()
 
 @app.post("/api/login")
-async def api_login(datos: LoginRequest):
+@limiter.limit("10/minute")
+async def api_login(request: Request, datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         token = get_token_valido()
         resp = JSONResponse(content={"status": "ok"})
         resp.set_cookie(
             key="session_token",
             value=token,
-            httponly=False,
+            httponly=True,
             max_age=86400,
             samesite="lax"
         )
@@ -310,7 +317,8 @@ async def eliminar_cita(cita_id: int, request: Request):
     return JSONResponse(content={"status": "ok"})
 
 @app.post("/chat")
-async def chat(mensaje: Mensaje):
+@limiter.limit("30/minute")
+async def chat(request: Request, mensaje: Mensaje):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     if mensaje.session_id not in conversaciones:
