@@ -217,18 +217,18 @@ async def login_page():
         return f.read()
 
 @app.post("/api/login")
-async def api_login(datos: LoginRequest, response: Response):
+async def api_login(datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         token = get_token_valido()
-        response.set_cookie(
+        resp = JSONResponse(content={"status": "ok"})
+        resp.set_cookie(
             key="session_token",
             value=token,
             httponly=False,
             max_age=86400,
             samesite="lax"
-)
-        
-        return JSONResponse(content={"status": "ok"})
+        )
+        return resp
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
 @app.get("/api/logout")
