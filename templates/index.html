@@ -614,6 +614,7 @@ let estado = {
     servicio: null,
     hora: null,
 }
+let citaAgendada = false
 
 function horaActual() {
     const now = new Date()
@@ -630,7 +631,7 @@ function agregarMensaje(texto, tipo) {
     }<div class="msg-time">${horaActual()}</div>`
     chat.appendChild(div)
 
-    if (tipo === "bot") {
+    if (tipo === "bot" && !citaAgendada) {
         const btnDiv = document.createElement("div")
         btnDiv.style.cssText = "align-self:flex-start; margin-top:-4px;"
         btnDiv.innerHTML = `<button onclick="iniciarWizard()" style="
@@ -931,6 +932,8 @@ async function confirmarCita() {
     document.getElementById("wizard-card")?.remove()
 
     if (res.ok) {
+        citaAgendada = true
+        document.querySelector(".btn-agendar-fijo")?.remove()
         const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
