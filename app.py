@@ -223,10 +223,11 @@ async def api_login(datos: LoginRequest, response: Response):
         response.set_cookie(
             key="session_token",
             value=token,
-            httponly=True,
+            httponly=False,
             max_age=86400,
             samesite="lax"
-        )
+)
+        
         return JSONResponse(content={"status": "ok"})
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 

@@ -180,35 +180,37 @@
 </div>
 
 <script>
-async function login() {
-    const usuario = document.getElementById("usuario").value.trim()
-    const password = document.getElementById("password").value.trim()
-    const btn = document.getElementById("btn-login")
-    const errorMsg = document.getElementById("error-msg")
-
-    if (!usuario || !password) return
-
-    btn.disabled = true
-    btn.textContent = "Verificando..."
-    errorMsg.classList.remove("visible")
-
-    const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, password }),
-        credentials: "include",
-        redirect: "follow"
-    })
-
-    if (res.ok || res.redirected) {
-        window.location.replace("/dashboard")
-    } else {
-        errorMsg.classList.add("visible")
-        btn.disabled = false
-        btn.textContent = "Ingresar"
-        document.getElementById("password").value = ""
+    async function login() {
+        const usuario = document.getElementById("usuario").value.trim()
+        const password = document.getElementById("password").value.trim()
+        const btn = document.getElementById("btn-login")
+        const errorMsg = document.getElementById("error-msg")
+    
+        if (!usuario || !password) return
+    
+        btn.disabled = true
+        btn.textContent = "Verificando..."
+        errorMsg.classList.remove("visible")
+    
+        const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario, password }),
+            credentials: "same-origin"
+        })
+    
+        if (res.ok) {
+            const data = await res.json()
+            if (data.status === "ok") {
+                window.location.href = "/dashboard"
+            }
+        } else {
+            errorMsg.classList.add("visible")
+            btn.disabled = false
+            btn.textContent = "Ingresar"
+            document.getElementById("password").value = ""
+        }
     }
-}
-</script>
+    </script>
 </body>
 </html>
