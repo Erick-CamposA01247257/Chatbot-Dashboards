@@ -19,9 +19,9 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "doctora")
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "mosadent2026")
-SESSION_SECRET = os.environ.get("SESSION_SECRET", "secret_local_dev")
+DASHBOARD_USER = os.environ.get("DASHBOARD_USER") or ""
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD") or ""
+SESSION_SECRET = os.environ.get("SESSION_SECRET") or ""
 
 DURACIONES = {
     "limpieza": 30, "limpieza dental": 30,
