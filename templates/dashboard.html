@@ -13,12 +13,6 @@
             --azul-light: #EFF6FF;
             --azul-mid: #BFDBFE;
             --azul-dark: #1D4ED8;
-            --verde: #10B981;
-            --verde-light: #D1FAE5;
-            --amber: #F59E0B;
-            --amber-light: #FEF3C7;
-            --purple: #8B5CF6;
-            --purple-light: #EDE9FE;
             --bg: #F8FAFC;
             --surface: #FFFFFF;
             --borde: #E2E8F0;
@@ -31,7 +25,7 @@
             font-family: 'DM Sans', sans-serif;
             background: var(--bg);
             color: var(--texto);
-            height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -41,126 +35,110 @@
         .header {
             background: var(--surface);
             border-bottom: 1px solid var(--borde);
-            padding: 0 28px;
-            height: 64px;
+            padding: 0 20px;
+            height: 56px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
+            gap: 12px;
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
         .logo-dot {
-            width: 32px;
-            height: 32px;
+            width: 30px; height: 30px;
             background: var(--azul);
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .logo-dot svg {
-            width: 16px;
-            height: 16px;
-            fill: white;
-        }
+        .logo-dot svg { width: 14px; height: 14px; fill: white; }
 
         .logo-nombre {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--texto);
-            letter-spacing: -0.3px;
+            font-size: 14px; font-weight: 600;
+            color: var(--texto); letter-spacing: -0.3px;
         }
 
         .header-divider {
-            width: 1px;
-            height: 24px;
+            width: 1px; height: 20px;
             background: var(--borde);
+            flex-shrink: 0;
         }
 
         .header-fecha {
-            font-size: 14px;
-            color: var(--texto-mid);
-            font-weight: 400;
+            font-size: 13px; color: var(--texto-mid);
+            white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .header-fecha strong {
-            color: var(--texto);
-            font-weight: 500;
-        }
+        .header-fecha strong { color: var(--texto); font-weight: 500; }
 
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
         .badge-citas {
             background: var(--azul-light);
             color: var(--azul-dark);
             border: 1px solid var(--azul-mid);
             border-radius: 20px;
-            padding: 5px 14px;
-            font-size: 13px;
-            font-weight: 500;
+            padding: 4px 10px;
+            font-size: 12px; font-weight: 500;
+            white-space: nowrap;
         }
 
-        .nav-fecha {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .nav-fecha { display: flex; align-items: center; gap: 4px; }
 
         .nav-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px; height: 30px;
             border: 1px solid var(--borde);
             border-radius: 8px;
             background: var(--surface);
-            cursor: pointer;
-            font-size: 16px;
+            cursor: pointer; font-size: 15px;
             color: var(--texto-mid);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             transition: all 0.15s;
         }
 
-        .nav-btn:hover {
-            background: var(--bg);
-            border-color: var(--azul-mid);
-            color: var(--azul);
-        }
+        .nav-btn:hover { background: var(--bg); border-color: var(--azul-mid); color: var(--azul); }
 
         .btn-hoy {
-            padding: 6px 14px;
+            padding: 5px 10px;
             border: 1px solid var(--borde);
             border-radius: 8px;
             background: var(--surface);
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 12px; font-weight: 500;
             color: var(--texto-mid);
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
             transition: all 0.15s;
         }
 
-        .btn-hoy:hover {
-            background: var(--azul-light);
-            border-color: var(--azul-mid);
+        .btn-hoy:hover { background: var(--azul-light); border-color: var(--azul-mid); color: var(--azul); }
+
+        /* ── Tabs móvil ── */
+        .tabs-movil {
+            display: none;
+            background: var(--surface);
+            border-bottom: 1px solid var(--borde);
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            flex: 1; padding: 10px;
+            border: none; background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px; font-weight: 500;
+            color: var(--texto-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .tab-btn.activo {
             color: var(--azul);
+            border-bottom-color: var(--azul);
         }
 
         /* ── Main layout ── */
@@ -168,7 +146,6 @@
             flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0;
             overflow: hidden;
         }
 
@@ -181,340 +158,184 @@
         }
 
         .panel-header {
-            padding: 16px 24px 12px;
+            padding: 14px 20px 10px;
             border-bottom: 1px solid var(--borde);
             flex-shrink: 0;
         }
 
         .panel-label {
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 11px; font-weight: 600;
             color: var(--texto-muted);
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
+            letter-spacing: 0.8px; text-transform: uppercase;
         }
 
-        .panel-subtitulo {
-            font-size: 13px;
-            color: var(--texto-mid);
-            margin-top: 3px;
-        }
+        .panel-subtitulo { font-size: 13px; color: var(--texto-mid); margin-top: 2px; }
 
-        .agenda-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 24px;
-        }
+        .agenda-scroll { flex: 1; overflow-y: auto; padding: 14px 20px; }
 
         /* ── Timeline ── */
-        .timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
+        .timeline { display: flex; flex-direction: column; }
 
-        .timeline-slot {
-            display: flex;
-            gap: 16px;
-            min-height: 72px;
-        }
+        .timeline-slot { display: flex; gap: 14px; min-height: 72px; }
 
-        .timeline-hora-col {
-            width: 44px;
-            flex-shrink: 0;
-            padding-top: 2px;
-        }
+        .timeline-hora-col { width: 40px; flex-shrink: 0; padding-top: 2px; }
 
-        .timeline-hora {
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--texto-muted);
-            text-align: right;
-        }
+        .timeline-hora { font-size: 12px; font-weight: 500; color: var(--texto-muted); text-align: right; }
 
         .timeline-linea-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-            width: 16px;
+            display: flex; flex-direction: column;
+            align-items: center; flex-shrink: 0; width: 16px;
         }
 
         .timeline-punto {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--borde);
-            flex-shrink: 0;
-            margin-top: 4px;
-            transition: background 0.2s;
+            width: 10px; height: 10px;
+            border-radius: 50%; background: var(--borde);
+            flex-shrink: 0; margin-top: 4px;
         }
 
-        .timeline-punto.activo {
-            background: var(--azul);
-        }
+        .timeline-punto.activo { background: var(--azul); }
 
-        .timeline-linea {
-            width: 1px;
-            flex: 1;
-            background: var(--borde);
-            margin-top: 4px;
-        }
+        .timeline-linea { width: 1px; flex: 1; background: var(--borde); margin-top: 4px; }
 
-        .timeline-content {
-            flex: 1;
-            padding-bottom: 16px;
-        }
+        .timeline-content { flex: 1; padding-bottom: 14px; }
 
-        /* ── Tarjeta de cita ── */
         .cita-card {
             background: var(--surface);
             border: 1px solid var(--borde);
-            border-radius: 12px;
-            padding: 16px 18px;
+            border-radius: 10px;
+            padding: 12px 14px;
             border-left: 4px solid var(--azul);
-            transition: box-shadow 0.15s;
-        }
-
-        .cita-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        }
-
-        .cita-card-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
             margin-bottom: 8px;
         }
 
+        .cita-card:last-child { margin-bottom: 0; }
+
+        .cita-card-header {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; margin-bottom: 6px;
+        }
+
         .cita-paciente {
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--texto);
-            letter-spacing: -0.2px;
-            line-height: 1.2;
+            font-size: 15px; font-weight: 600;
+            color: var(--texto); line-height: 1.2;
         }
 
         .cita-hora-badge {
-            background: var(--azul-light);
-            color: var(--azul-dark);
-            border-radius: 6px;
-            padding: 3px 10px;
-            font-size: 13px;
-            font-weight: 500;
-            flex-shrink: 0;
-            margin-left: 12px;
+            background: var(--azul-light); color: var(--azul-dark);
+            border-radius: 6px; padding: 3px 8px;
+            font-size: 12px; font-weight: 500;
+            flex-shrink: 0; margin-left: 8px;
         }
 
         .cita-detalle {
-            font-size: 13px;
-            color: var(--texto-mid);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 12px; color: var(--texto-mid);
+            display: flex; align-items: center; gap: 8px;
         }
 
         .cita-detalle-sep {
-            width: 3px;
-            height: 3px;
-            background: var(--texto-muted);
-            border-radius: 50%;
+            width: 3px; height: 3px;
+            background: var(--texto-muted); border-radius: 50%;
         }
 
-        .hora-vacia {
-            color: var(--texto-muted);
-            font-size: 13px;
-            font-weight: 300;
-            padding: 4px 0;
-        }
+        .hora-vacia { color: var(--texto-muted); font-size: 12px; font-weight: 300; padding: 4px 0; }
 
-        /* ── Panel derecho — Calendario visual ── */
+        /* ── Panel derecho ── */
         .panel-cal {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background: var(--surface);
+            display: flex; flex-direction: column;
+            overflow: hidden; background: var(--surface);
         }
 
-        .cal-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-        }
+        .cal-scroll { flex: 1; overflow-y: auto; padding: 14px 16px; }
 
-        /* ── Mini calendar ── */
-        .mini-cal {
-            margin-bottom: 16px;
-        }
+        .mini-cal { margin-bottom: 14px; }
 
         .mini-cal-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
+            display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 10px;
         }
 
-        .mini-cal-mes {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--texto);
-        }
+        .mini-cal-mes { font-size: 13px; font-weight: 500; color: var(--texto); }
 
         .mini-cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            text-align: center;
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 2px; text-align: center;
         }
 
         .mini-dia-nombre {
-            font-size: 10px;
-            color: var(--texto-muted);
-            font-weight: 500;
-            padding-bottom: 4px;
-            letter-spacing: 0.3px;
+            font-size: 10px; color: var(--texto-muted);
+            font-weight: 500; padding-bottom: 4px;
         }
 
         .mini-dia {
-            padding: 5px 2px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            border: none;
-            background: none;
+            padding: 6px 2px; border-radius: 6px;
+            font-size: 12px; cursor: pointer;
+            border: none; background: none;
             font-family: 'DM Sans', sans-serif;
-            color: var(--texto-mid);
-            transition: all 0.15s;
+            color: var(--texto-mid); transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .mini-dia:hover:not(:disabled) {
-            background: var(--azul-light);
-            color: var(--azul);
-        }
-
+        .mini-dia:hover:not(:disabled) { background: var(--azul-light); color: var(--azul); }
         .mini-dia.hoy { font-weight: 600; color: var(--azul); }
-
-        .mini-dia.seleccionado {
-            background: var(--azul);
-            color: white;
-            font-weight: 500;
-        }
-
-        .mini-dia.tiene-citas {
-            position: relative;
-        }
-
+        .mini-dia.seleccionado { background: var(--azul); color: white; font-weight: 500; }
+        .mini-dia.tiene-citas { position: relative; }
         .mini-dia.tiene-citas::after {
-            content: '';
-            display: block;
-            width: 3px;
-            height: 3px;
-            background: var(--azul);
-            border-radius: 50%;
+            content: ''; display: block;
+            width: 3px; height: 3px;
+            background: var(--azul); border-radius: 50%;
             margin: 1px auto 0;
         }
-
-        .mini-dia.seleccionado.tiene-citas::after {
-            background: rgba(255,255,255,0.8);
-        }
-
+        .mini-dia.seleccionado.tiene-citas::after { background: rgba(255,255,255,0.8); }
         .mini-dia:disabled { color: #CBD5E1; cursor: default; }
 
-        /* ── Grid visual del día ── */
-        .grid-sep {
-            border-top: 1px solid var(--borde);
-            margin-bottom: 12px;
-            padding-top: 12px;
-        }
+        .grid-sep { border-top: 1px solid var(--borde); margin-bottom: 10px; padding-top: 10px; }
+        .grid-visual { position: relative; }
 
-        .grid-visual {
-            position: relative;
-        }
-
-        .grid-fila-hora {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            height: 72px;
-        }
+        .grid-fila-hora { display: flex; align-items: flex-start; gap: 8px; height: 72px; }
 
         .grid-hora-label {
-            font-size: 11px;
-            color: var(--texto-muted);
-            width: 38px;
-            flex-shrink: 0;
-            text-align: right;
-            padding-top: 2px;
-            font-weight: 500;
+            font-size: 10px; color: var(--texto-muted);
+            width: 34px; flex-shrink: 0;
+            text-align: right; padding-top: 2px; font-weight: 500;
         }
 
-        .grid-hora-linea {
-            flex: 1;
-            border-top: 1px solid var(--borde);
-            position: relative;
-            height: 100%;
-        }
+        .grid-hora-linea { flex: 1; border-top: 1px solid var(--borde); position: relative; height: 100%; }
 
         .grid-bloque {
             position: absolute;
-            left: 0;
-            right: 4px;
             background: var(--azul-light);
             border: 1px solid var(--azul-mid);
             border-left: 3px solid var(--azul);
-            border-radius: 6px;
-            padding: 4px 8px;
-            overflow: hidden;
-            z-index: 1;
+            border-radius: 6px; padding: 4px 8px;
+            overflow: hidden; z-index: 1;
         }
 
         .grid-bloque-nombre {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--azul-dark);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 11px; font-weight: 600; color: var(--azul-dark);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .grid-bloque-detalle {
-            font-size: 10px;
-            color: var(--azul);
-            margin-top: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 10px; color: var(--azul); margin-top: 1px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* ── Stats del header ── */
-        .stats-row {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        /* ── Responsive móvil ── */
+        @media (max-width: 640px) {
+            .header-divider { display: none; }
+            .header-fecha { display: none; }
 
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+            .tabs-movil { display: flex; }
 
-        .stat-num {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--texto);
-        }
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr;
+            }
 
-        .stat-txt {
-            font-size: 12px;
-            color: var(--texto-muted);
-            line-height: 1.3;
-        }
+            .panel-agenda { border-right: none; }
 
-        .stat-sep {
-            width: 1px;
-            height: 28px;
-            background: var(--borde);
+            .panel-agenda.oculto { display: none; }
+            .panel-cal.oculto { display: none; }
         }
     </style>
 </head>
@@ -537,15 +358,18 @@
             <button class="btn-hoy" onclick="irHoy()">Hoy</button>
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
-        <div class="header-divider"></div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
     </div>
 </div>
 
+<div class="tabs-movil">
+    <button class="tab-btn activo" id="tab-agenda" onclick="cambiarTab('agenda')">📋 Agenda</button>
+    <button class="tab-btn" id="tab-cal" onclick="cambiarTab('cal')">📅 Calendario</button>
+</div>
+
 <div class="main">
 
-    <!-- IZQUIERDA — Agenda -->
-    <div class="panel-agenda">
+    <div class="panel-agenda" id="panel-agenda">
         <div class="panel-header">
             <div class="panel-label">Agenda del día</div>
             <div class="panel-subtitulo" id="agenda-subtitulo"></div>
@@ -555,8 +379,7 @@
         </div>
     </div>
 
-    <!-- DERECHA — Calendario visual -->
-    <div class="panel-cal">
+    <div class="panel-cal oculto" id="panel-cal">
         <div class="panel-header">
             <div class="panel-label">Calendario</div>
             <div class="panel-subtitulo">Vista por bloques</div>
@@ -589,6 +412,7 @@
     let fechaSeleccionada = new Date().toISOString().split("T")[0]
     let calMes = new Date().getMonth()
     let calAño = new Date().getFullYear()
+    let tabActivo = "agenda"
 
     const hoyStr = new Date().toISOString().split("T")[0]
     const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
@@ -608,6 +432,26 @@
         renderGridVisual()
     }
 
+    function cambiarTab(tab) {
+        tabActivo = tab
+        const panelAgenda = document.getElementById("panel-agenda")
+        const panelCal = document.getElementById("panel-cal")
+        const tabAgenda = document.getElementById("tab-agenda")
+        const tabCal = document.getElementById("tab-cal")
+
+        if (tab === "agenda") {
+            panelAgenda.classList.remove("oculto")
+            panelCal.classList.add("oculto")
+            tabAgenda.classList.add("activo")
+            tabCal.classList.remove("activo")
+        } else {
+            panelCal.classList.remove("oculto")
+            panelAgenda.classList.add("oculto")
+            tabCal.classList.add("activo")
+            tabAgenda.classList.remove("activo")
+        }
+    }
+
     function actualizarHeader() {
         const fecha = new Date(fechaSeleccionada + "T12:00:00")
         const esHoy = fechaSeleccionada === hoyStr
@@ -618,8 +462,7 @@
         const citasDelDia = todasLasCitas.filter(c => c.fecha === fechaSeleccionada)
         document.getElementById("badge-citas").textContent = `${citasDelDia.length} cita${citasDelDia.length !== 1 ? 's' : ''} hoy`
 
-        const fecha2 = new Date(fechaSeleccionada + "T12:00:00")
-        const diaStr = fecha2.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
+        const diaStr = fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
         document.getElementById("agenda-subtitulo").textContent = diaStr.charAt(0).toUpperCase() + diaStr.slice(1)
     }
 
@@ -628,12 +471,12 @@
             .filter(c => c.fecha === fechaSeleccionada)
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
-            const citasPorHora = {}
-            citasDelDia.forEach(c => {
-                const h = parseInt(c.hora.split(":")[0])
-                if (!citasPorHora[h]) citasPorHora[h] = []
-                citasPorHora[h].push(c)
-})
+        const citasPorHora = {}
+        citasDelDia.forEach(c => {
+            const h = parseInt(c.hora.split(":")[0])
+            if (!citasPorHora[h]) citasPorHora[h] = []
+            citasPorHora[h].push(c)
+        })
 
         const timeline = document.getElementById("timeline")
         timeline.innerHTML = ""
@@ -642,12 +485,9 @@
             const citas = citasPorHora[h]
             const slot = document.createElement("div")
             slot.className = "timeline-slot"
-
-            const horaLabel = `${h}:00`
-
             slot.innerHTML = `
                 <div class="timeline-hora-col">
-                    <span class="timeline-hora">${horaLabel}</span>
+                    <span class="timeline-hora">${h}:00</span>
                 </div>
                 <div class="timeline-linea-col">
                     <div class="timeline-punto ${citas ? 'activo' : ''}"></div>
@@ -655,7 +495,7 @@
                 </div>
                 <div class="timeline-content">
                     ${citas ? citas.map(c => `
-                        <div class="cita-card" style="margin-bottom:8px">
+                        <div class="cita-card">
                             <div class="cita-card-header">
                                 <div class="cita-paciente">${c.nombre}</div>
                                 <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
@@ -666,27 +506,23 @@
                                 <span>${c.duracion} min</span>
                             </div>
                         </div>`).join("") : `<div class="hora-vacia">Disponible</div>`}
-                </div>
-            `
-
+                </div>`
             timeline.appendChild(slot)
         }
 
         if (citasDelDia.length === 0) {
             const empty = document.createElement("div")
-            empty.style.cssText = "text-align:center;padding:60px 20px;color:var(--texto-muted)"
+            empty.style.cssText = "text-align:center;padding:48px 20px;color:var(--texto-muted)"
             empty.innerHTML = `
-                <div style="font-size:32px;margin-bottom:12px">📭</div>
+                <div style="font-size:28px;margin-bottom:10px">📭</div>
                 <div style="font-size:14px;font-weight:500">Sin citas para este día</div>
-                <div style="font-size:12px;margin-top:4px;font-weight:300">El día está libre</div>
-            `
+                <div style="font-size:12px;margin-top:4px;font-weight:300">El día está libre</div>`
             timeline.appendChild(empty)
         }
     }
 
     function renderMiniCal() {
         document.getElementById("mini-cal-titulo").textContent = `${meses[calMes]} ${calAño}`
-
         const grid = document.getElementById("mini-cal-grid")
         grid.innerHTML = diasCortos.map(d => `<div class="mini-dia-nombre">${d}</div>`).join("")
 
@@ -723,8 +559,7 @@
             fila.className = "grid-fila-hora"
             fila.innerHTML = `
                 <div class="grid-hora-label">${h}:00</div>
-                <div class="grid-hora-linea" id="linea-${h}"></div>
-            `
+                <div class="grid-hora-linea"></div>`
             wrapper.appendChild(fila)
         }
 
@@ -732,19 +567,14 @@
 
         citasDelDia.forEach(cita => {
             const [hh, mm] = cita.hora.split(":").map(Number)
-            const offsetHoras = hh - HORA_INICIO
-            const offsetMinutos = mm / 60
-            const top = (offsetHoras + offsetMinutos) * ALTURA_HORA
+            const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
-            const labelOffset = 24
-
             const bloque = document.createElement("div")
             bloque.className = "grid-bloque"
-            bloque.style.cssText = `top: ${top}px; height: ${height}px; left: 52px; right: 4px; position: absolute;`
+            bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute;`
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre">${cita.nombre}</div>
-                <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${cita.servicio}</div>
-            `
+                <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${cita.servicio}</div>`
             wrapper.appendChild(bloque)
         })
     }
@@ -754,6 +584,7 @@
         calMes = parseInt(fecha.split("-")[1]) - 1
         calAño = parseInt(fecha.split("-")[0])
         render()
+        if (window.innerWidth <= 640) cambiarTab("agenda")
     }
 
     function navegarDia(delta) {
