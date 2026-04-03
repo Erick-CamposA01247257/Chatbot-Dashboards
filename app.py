@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import anthropic
-import sqlite3
+import psycopg2
 import os
 import hashlib
 import secrets
@@ -77,12 +77,15 @@ conversaciones = {}
 # PROCESO — Base de datos SQLite
 # ============================================
 
+def get_conn():
+    return psycopg2.connect(os.environ.get("DATABASE_URL"))
+
 def init_db():
-    conn = sqlite3.connect("citas.db")
+    conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS citas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             nombre TEXT NOT NULL,
             servicio TEXT NOT NULL,
             fecha TEXT NOT NULL,
@@ -95,17 +98,17 @@ def init_db():
     conn.close()
 
 def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int):
-    conn = sqlite3.connect("citas.db")
+    conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """, (nombre, servicio, fecha, hora, duracion, str(date.today())))
     conn.commit()
     conn.close()
 
 def obtener_citas():
-    conn = sqlite3.connect("citas.db")
+    conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro FROM citas ORDER BY fecha, hora")
     filas = cursor.fetchall()
@@ -116,9 +119,9 @@ def obtener_citas():
     ]
 
 def obtener_citas_por_fecha(fecha: str):
-    conn = sqlite3.connect("citas.db")
+    conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT hora, duracion FROM citas WHERE fecha = ?", (fecha,))
+    cursor.execute("SELECT hora, duracion FROM citas WHERE fecha = %s", (fecha,))
     filas = cursor.fetchall()
     conn.close()
     return [{"hora": f[0], "duracion": f[1]} for f in filas]
