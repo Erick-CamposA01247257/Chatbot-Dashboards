@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import anthropic
 import sqlite3
 import os
+import hashlib
 import secrets
 from datetime import date, datetime, timedelta
 
@@ -14,29 +15,18 @@ app = FastAPI()
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "doctora")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "mosadent2026")
+SESSION_SECRET = os.environ.get("SESSION_SECRET", "secret_local_dev")
 
 DURACIONES = {
-    "limpieza": 30,
-    "limpieza dental": 30,
-    "revisión": 30,
-    "revision": 30,
-    "revisión general": 30,
-    "revisión y diagnóstico general": 30,
-    "blanqueamiento": 60,
-    "blanqueamiento dental": 60,
-    "resinas": 60,
-    "resina": 60,
-    "restauraciones": 60,
-    "resinas y restauraciones": 60,
-    "extracción": 45,
-    "extraccion": 45,
-    "extracciones": 45,
-    "ortodoncia": 60,
-    "brackets": 60,
-    "ortodoncia y brackets": 60,
-    "implante": 90,
-    "implantes": 90,
-    "implantes dentales": 90,
+    "limpieza": 30, "limpieza dental": 30,
+    "revisión": 30, "revision": 30,
+    "revisión general": 30, "revisión y diagnóstico general": 30,
+    "blanqueamiento": 60, "blanqueamiento dental": 60,
+    "resinas": 60, "resina": 60,
+    "restauraciones": 60, "resinas y restauraciones": 60,
+    "extracción": 45, "extraccion": 45, "extracciones": 45,
+    "ortodoncia": 60, "brackets": 60, "ortodoncia y brackets": 60,
+    "implante": 90, "implantes": 90, "implantes dentales": 90,
 }
 
 DURACION_DEFAULT = 60
@@ -99,12 +89,6 @@ def init_db():
             hora TEXT NOT NULL,
             duracion INTEGER NOT NULL,
             fecha_registro TEXT NOT NULL
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS sesiones (
-            token TEXT PRIMARY KEY,
-            creado TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -185,33 +169,18 @@ def calcular_slots(fecha: str, duracion: int):
     return slots
 
 # ============================================
-# PROCESO — Auth con SQLite
+# PROCESO — Auth determinístico
 # ============================================
+
+def get_token_valido():
+    data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
+    return hashlib.sha256(data.encode()).hexdigest()
 
 def verificar_sesion(request: Request):
     token = request.cookies.get("session_token")
     if not token:
         return False
-    conn = sqlite3.connect("citas.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT token FROM sesiones WHERE token = ?", (token,))
-    resultado = cursor.fetchone()
-    conn.close()
-    return resultado is not None
-
-def guardar_sesion(token: str):
-    conn = sqlite3.connect("citas.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO sesiones (token, creado) VALUES (?, ?)", (token, str(datetime.now())))
-    conn.commit()
-    conn.close()
-
-def eliminar_sesion(token: str):
-    conn = sqlite3.connect("citas.db")
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM sesiones WHERE token = ?", (token,))
-    conn.commit()
-    conn.close()
+    return token == get_token_valido()
 
 init_db()
 
@@ -250,8 +219,7 @@ async def login_page():
 @app.post("/api/login")
 async def api_login(datos: LoginRequest, response: Response):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
-        token = secrets.token_hex(32)
-        guardar_sesion(token)
+        token = get_token_valido()
         response.set_cookie(
             key="session_token",
             value=token,
@@ -264,10 +232,7 @@ async def api_login(datos: LoginRequest, response: Response):
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
 @app.get("/api/logout")
-async def logout(request: Request, response: Response):
-    token = request.cookies.get("session_token")
-    if token:
-        eliminar_sesion(token)
+async def logout(response: Response):
     response.delete_cookie("session_token")
     return RedirectResponse(url="/login")
 
