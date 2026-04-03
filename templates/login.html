@@ -195,11 +195,13 @@ async function login() {
     const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, password })
+        body: JSON.stringify({ usuario, password }),
+        credentials: "include",
+        redirect: "follow"
     })
 
-    if (res.ok) {
-        window.location.href = "/dashboard"
+    if (res.ok || res.redirected) {
+        window.location.replace("/dashboard")
     } else {
         errorMsg.classList.add("visible")
         btn.disabled = false
