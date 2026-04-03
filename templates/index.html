@@ -842,6 +842,10 @@ function paso4Confirmacion() {
             <label>Su nombre completo</label>
             <input type="text" id="nombre-input" placeholder="Ej. María González" />
         </div>
+        <div class="nombre-input-wrap" style="margin-top:10px">
+            <label>Número de teléfono</label>
+            <input type="tel" id="telefono-input" placeholder="Ej. 81 1234 5678" />
+        </div>
         <button class="btn-confirmar" onclick="confirmarCita()">Confirmar cita</button>
     `
 }
@@ -907,6 +911,7 @@ function elegirHora(hora) {
 
 async function confirmarCita() {
     const nombre = document.getElementById("nombre-input")?.value.trim()
+    const telefono = document.getElementById("telefono-input")?.value.trim() || ""
     if (!nombre) {
         document.getElementById("nombre-input").style.borderColor = "red"
         document.getElementById("nombre-input").placeholder = "Por favor ingrese su nombre"
@@ -922,6 +927,7 @@ async function confirmarCita() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             nombre,
+            telefono,
             servicio: estado.servicio,
             fecha: estado.fecha,
             hora: estado.hora

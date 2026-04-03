@@ -320,6 +320,97 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
+        /* ── Estado confirmada ── */
+        .cita-card.confirmada { border-left-color: #22C55E; }
+        .cita-card.confirmada .cita-hora-badge { background: #F0FDF4; color: #15803D; }
+        .grid-bloque.confirmado {
+            background: #F0FDF4;
+            border-color: #86EFAC;
+            border-left-color: #22C55E;
+        }
+        .grid-bloque.confirmado .grid-bloque-nombre { color: #15803D; }
+        .grid-bloque.confirmado .grid-bloque-detalle { color: #22C55E; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(15,23,42,0.4);
+            z-index: 100;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.visible { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border-radius: 16px;
+            width: 100%; max-width: 380px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 20px;
+        }
+
+        .modal-titulo { font-size: 16px; font-weight: 600; color: var(--texto); }
+
+        .modal-close {
+            width: 28px; height: 28px;
+            border: none; background: var(--bg);
+            border-radius: 8px; cursor: pointer;
+            font-size: 16px; color: var(--texto-muted);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .modal-fila {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 10px 0;
+            border-bottom: 1px solid var(--borde);
+            font-size: 13px;
+        }
+        .modal-fila:last-of-type { border-bottom: none; }
+        .modal-etiqueta { color: var(--texto-muted); font-weight: 500; }
+        .modal-valor { color: var(--texto); font-weight: 500; text-align: right; }
+
+        .modal-badge-pendiente {
+            background: #FEF9C3; color: #854D0E;
+            border-radius: 20px; padding: 3px 10px;
+            font-size: 12px; font-weight: 500;
+        }
+        .modal-badge-confirmada {
+            background: #F0FDF4; color: #15803D;
+            border-radius: 20px; padding: 3px 10px;
+            font-size: 12px; font-weight: 500;
+        }
+
+        .modal-acciones {
+            display: flex; gap: 8px; margin-top: 20px;
+        }
+
+        .btn-modal-confirmar {
+            flex: 1; padding: 11px;
+            background: #22C55E; color: white;
+            border: none; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-modal-confirmar:hover { background: #16A34A; }
+        .btn-modal-confirmar:disabled { background: var(--texto-muted); cursor: default; }
+
+        .btn-modal-eliminar {
+            flex: 1; padding: 11px;
+            background: #FEF2F2; color: #DC2626;
+            border: 1px solid #FECACA; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-modal-eliminar:hover { background: #FEE2E2; }
+
         /* ── Responsive móvil ── */
         @media (max-width: 640px) {
             .header-divider { display: none; }
@@ -365,6 +456,47 @@
 <div class="tabs-movil">
     <button class="tab-btn activo" id="tab-agenda" onclick="cambiarTab('agenda')">📋 Agenda</button>
     <button class="tab-btn" id="tab-cal" onclick="cambiarTab('cal')">📅 Calendario</button>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
+    <div class="modal" id="modal">
+        <div class="modal-header">
+            <div class="modal-titulo">Detalle de cita</div>
+            <button class="modal-close" onclick="cerrarModalDirecto()">✕</button>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Paciente</span>
+            <span class="modal-valor" id="m-nombre"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Teléfono</span>
+            <span class="modal-valor" id="m-telefono"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Servicio</span>
+            <span class="modal-valor" id="m-servicio"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Fecha</span>
+            <span class="modal-valor" id="m-fecha"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Hora</span>
+            <span class="modal-valor" id="m-hora"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Duración</span>
+            <span class="modal-valor" id="m-duracion"></span>
+        </div>
+        <div class="modal-fila">
+            <span class="modal-etiqueta">Estado</span>
+            <span id="m-estado"></span>
+        </div>
+        <div class="modal-acciones">
+            <button class="btn-modal-confirmar" id="btn-modal-confirmar" onclick="confirmarCita()">Confirmar</button>
+            <button class="btn-modal-eliminar" onclick="eliminarCita()">Eliminar</button>
+        </div>
+    </div>
 </div>
 
 <div class="main">
@@ -495,7 +627,7 @@
                 </div>
                 <div class="timeline-content">
                     ${citas ? citas.map(c => `
-                        <div class="cita-card">
+                        <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" onclick="abrirModal(${c.id})" style="cursor:pointer">
                             <div class="cita-card-header">
                                 <div class="cita-paciente">${c.nombre}</div>
                                 <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
@@ -572,6 +704,9 @@
             const bloque = document.createElement("div")
             bloque.className = "grid-bloque"
             bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute;`
+            bloque.className = `grid-bloque ${cita.confirmada ? 'confirmado' : ''}`
+            bloque.style.cursor = "pointer"
+            bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre">${cita.nombre}</div>
                 <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${cita.servicio}</div>`
@@ -615,6 +750,66 @@
         const suffix = h >= 12 ? "PM" : "AM"
         const h12 = h % 12 || 12
         return `${h12}:${String(m).padStart(2,"0")} ${suffix}`
+    }
+
+    let citaModal = null
+
+    function abrirModal(id) {
+        citaModal = todasLasCitas.find(c => c.id === id)
+        if (!citaModal) return
+
+        const fechaLeg = new Date(citaModal.fecha + "T12:00:00").toLocaleDateString("es-MX", {
+            weekday: "long", day: "numeric", month: "long", year: "numeric"
+        })
+
+        document.getElementById("m-nombre").textContent = citaModal.nombre
+        document.getElementById("m-telefono").textContent = citaModal.telefono || "No registrado"
+        document.getElementById("m-servicio").textContent = citaModal.servicio
+        document.getElementById("m-fecha").textContent = fechaLeg.charAt(0).toUpperCase() + fechaLeg.slice(1)
+        document.getElementById("m-hora").textContent = convertir12h(citaModal.hora)
+        document.getElementById("m-duracion").textContent = `${citaModal.duracion} min`
+
+        const estadoEl = document.getElementById("m-estado")
+        const btnConfirmar = document.getElementById("btn-modal-confirmar")
+        if (citaModal.confirmada) {
+            estadoEl.innerHTML = `<span class="modal-badge-confirmada">Confirmada</span>`
+            btnConfirmar.disabled = true
+            btnConfirmar.textContent = "Ya confirmada"
+        } else {
+            estadoEl.innerHTML = `<span class="modal-badge-pendiente">Pendiente</span>`
+            btnConfirmar.disabled = false
+            btnConfirmar.textContent = "Confirmar"
+        }
+
+        document.getElementById("modal-overlay").classList.add("visible")
+    }
+
+    function cerrarModal(e) {
+        if (e.target === document.getElementById("modal-overlay")) cerrarModalDirecto()
+    }
+
+    function cerrarModalDirecto() {
+        document.getElementById("modal-overlay").classList.remove("visible")
+        citaModal = null
+    }
+
+    async function confirmarCita() {
+        if (!citaModal) return
+        const res = await fetch(`/api/citas/${citaModal.id}/confirmar`, { method: "PATCH" })
+        if (res.ok) {
+            cerrarModalDirecto()
+            await cargarCitas()
+        }
+    }
+
+    async function eliminarCita() {
+        if (!citaModal) return
+        if (!confirm(`¿Eliminar la cita de ${citaModal.nombre}?`)) return
+        const res = await fetch(`/api/citas/${citaModal.id}`, { method: "DELETE" })
+        if (res.ok) {
+            cerrarModalDirecto()
+            await cargarCitas()
+        }
     }
 
     cargarCitas()

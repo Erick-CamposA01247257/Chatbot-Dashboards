@@ -91,30 +91,34 @@ def init_db():
             fecha TEXT NOT NULL,
             hora TEXT NOT NULL,
             duracion INTEGER NOT NULL,
-            fecha_registro TEXT NOT NULL
+            fecha_registro TEXT NOT NULL,
+            telefono TEXT NOT NULL DEFAULT '',
+            confirmada BOOLEAN NOT NULL DEFAULT FALSE
         )
     """)
+    cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS telefono TEXT NOT NULL DEFAULT ''")
+    cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS confirmada BOOLEAN NOT NULL DEFAULT FALSE")
     conn.commit()
     conn.close()
 
-def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int):
+def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (nombre, servicio, fecha, hora, duracion, str(date.today())))
+        INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
+    """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono))
     conn.commit()
     conn.close()
 
 def obtener_citas():
     conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro FROM citas ORDER BY fecha, hora")
+    cursor.execute("SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada FROM citas ORDER BY fecha, hora")
     filas = cursor.fetchall()
     conn.close()
     return [
-        {"id": f[0], "nombre": f[1], "servicio": f[2], "fecha": f[3], "hora": f[4], "duracion": f[5], "fecha_registro": f[6]}
+        {"id": f[0], "nombre": f[1], "servicio": f[2], "fecha": f[3], "hora": f[4], "duracion": f[5], "fecha_registro": f[6], "telefono": f[7], "confirmada": f[8]}
         for f in filas
     ]
 
@@ -200,6 +204,7 @@ class CitaRequest(BaseModel):
     servicio: str
     fecha: str
     hora: str
+    telefono: str = ""
 
 class LoginRequest(BaseModel):
     usuario: str
@@ -279,8 +284,30 @@ async def api_agendar(cita: CitaRequest):
             status_code=409,
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
-    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion)
+    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
+
+@app.patch("/api/citas/{cita_id}/confirmar")
+async def confirmar_cita(cita_id: int, request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
+
+@app.delete("/api/citas/{cita_id}")
+async def eliminar_cita(cita_id: int, request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM citas WHERE id = %s", (cita_id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
 
 @app.post("/chat")
 async def chat(mensaje: Mensaje):
