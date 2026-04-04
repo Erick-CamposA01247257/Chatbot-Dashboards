@@ -440,6 +440,71 @@
         }
         .btn-nueva-cita:hover { background: var(--azul-dark); }
 
+        /* ── Toggle auto-confirmar ── */
+        .toggle-wrap {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12px; color: var(--texto-mid); cursor: pointer;
+            user-select: none; flex-shrink: 0;
+        }
+        .toggle-wrap input { display: none; }
+        .toggle-track {
+            width: 34px; height: 20px;
+            background: var(--borde); border-radius: 20px;
+            position: relative; transition: background 0.2s; flex-shrink: 0;
+        }
+        .toggle-thumb {
+            position: absolute; top: 3px; left: 3px;
+            width: 14px; height: 14px;
+            background: white; border-radius: 50%;
+            transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-wrap input:checked + .toggle-track { background: #22C55E; }
+        .toggle-wrap input:checked + .toggle-track .toggle-thumb { left: 17px; }
+
+        /* ── Checkbox en cita card ── */
+        .cita-check {
+            width: 17px; height: 17px;
+            border: 2px solid var(--borde);
+            border-radius: 5px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 8px; cursor: pointer;
+            transition: all 0.15s; align-self: center;
+        }
+        .cita-check.checked {
+            background: var(--azul); border-color: var(--azul);
+        }
+        .cita-check.checked::after {
+            content: '✓'; color: white; font-size: 11px; font-weight: 600;
+        }
+        .cita-card-header { cursor: pointer; }
+
+        /* ── Barra de selección ── */
+        .barra-seleccion {
+            display: none;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--texto); color: white;
+            border-radius: 12px; padding: 12px 16px;
+            align-items: center; gap: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            z-index: 50; white-space: nowrap;
+            font-size: 13px;
+        }
+        .barra-seleccion.visible { display: flex; }
+        .btn-confirmar-lote {
+            background: #22C55E; color: white;
+            border: none; border-radius: 8px;
+            padding: 7px 14px; font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-confirmar-lote:hover { background: #16A34A; }
+        .btn-limpiar-sel {
+            background: rgba(255,255,255,0.15); color: white;
+            border: none; border-radius: 8px;
+            padding: 7px 10px; font-size: 12px;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+        }
+
         /* ── Responsive móvil ── */
         @media (max-width: 640px) {
             .header-divider { display: none; }
@@ -482,8 +547,19 @@
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
+        <label class="toggle-wrap" title="Confirmar citas automáticamente al agendar">
+            <input type="checkbox" id="toggle-autoconfirmar" onchange="cambiarAutoConfirmar(this.checked)">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+            <span class="toggle-label">Auto</span>
+        </label>
         <button class="btn-nueva-cita" onclick="abrirNuevaCita()">+ Nueva cita</button>
     </div>
+</div>
+
+<div class="barra-seleccion" id="barra-seleccion">
+    <span id="barra-texto">0 seleccionadas</span>
+    <button class="btn-confirmar-lote" onclick="confirmarSeleccionadas()">Confirmar</button>
+    <button class="btn-limpiar-sel" onclick="limpiarSeleccion()">✕</button>
 </div>
 
 <div class="tabs-movil">
@@ -714,12 +790,15 @@
                 </div>
                 <div class="timeline-content">
                     ${citas ? citas.map(c => `
-                        <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" onclick="abrirModal(${c.id})" style="cursor:pointer">
-                            <div class="cita-card-header">
-                                <div class="cita-paciente">${escaparHTML(c.nombre)}</div>
-                                <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
+                        <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" id="card-${c.id}">
+                            <div class="cita-card-header" style="display:flex;align-items:center">
+                                ${!c.confirmada ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
+                                <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
+                                    <div class="cita-paciente">${escaparHTML(c.nombre)}</div>
+                                    <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
+                                </div>
                             </div>
-                            <div class="cita-detalle">
+                            <div class="cita-detalle" onclick="abrirModal(${c.id})">
                                 <span>${escaparHTML(c.servicio)}</span>
                                 <div class="cita-detalle-sep"></div>
                                 <span>${c.duracion} min</span>
@@ -986,7 +1065,82 @@
         }
     }
 
+    // ── Selección múltiple ──
+    let seleccionados = new Set()
+
+    function toggleCheck(e, id) {
+        e.stopPropagation()
+        const el = document.getElementById(`check-${id}`)
+        if (!el) return
+        if (seleccionados.has(id)) {
+            seleccionados.delete(id)
+            el.classList.remove("checked")
+        } else {
+            seleccionados.add(id)
+            el.classList.add("checked")
+        }
+        actualizarBarra()
+    }
+
+    function actualizarBarra() {
+        const barra = document.getElementById("barra-seleccion")
+        const texto = document.getElementById("barra-texto")
+        if (seleccionados.size > 0) {
+            texto.textContent = `${seleccionados.size} cita${seleccionados.size > 1 ? 's' : ''} seleccionada${seleccionados.size > 1 ? 's' : ''}`
+            barra.classList.add("visible")
+        } else {
+            barra.classList.remove("visible")
+        }
+    }
+
+    function limpiarSeleccion() {
+        seleccionados.forEach(id => {
+            const el = document.getElementById(`check-${id}`)
+            if (el) el.classList.remove("checked")
+        })
+        seleccionados.clear()
+        actualizarBarra()
+    }
+
+    async function confirmarSeleccionadas() {
+        if (seleccionados.size === 0) return
+        const btn = document.querySelector(".btn-confirmar-lote")
+        btn.disabled = true
+        btn.textContent = "Confirmando..."
+        const res = await fetch("/api/citas/confirmar-lote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: [...seleccionados] })
+        })
+        if (res.ok) {
+            seleccionados.clear()
+            actualizarBarra()
+            await cargarCitas()
+        }
+        btn.disabled = false
+        btn.textContent = "Confirmar"
+    }
+
+    // ── Auto-confirmar ──
+    async function cargarConfig() {
+        try {
+            const res = await fetch("/api/config")
+            if (!res.ok) return
+            const data = await res.json()
+            document.getElementById("toggle-autoconfirmar").checked = data.auto_confirmar
+        } catch {}
+    }
+
+    async function cambiarAutoConfirmar(valor) {
+        await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ auto_confirmar: valor })
+        })
+    }
+
     cargarCitas()
+    cargarConfig()
     setInterval(cargarCitas, 30000)
 </script>
 </body>

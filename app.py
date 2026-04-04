@@ -109,8 +109,25 @@ def init_db():
     cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS telefono TEXT NOT NULL DEFAULT ''")
     cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS confirmada BOOLEAN NOT NULL DEFAULT FALSE")
     cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS cancelacion_token TEXT")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS config (
+            clave TEXT PRIMARY KEY,
+            valor TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
+
+def get_auto_confirmar() -> bool:
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT valor FROM config WHERE clave = 'auto_confirmar'")
+        row = cursor.fetchone()
+        conn.close()
+        return row is not None and row[0] == "true"
+    except Exception:
+        return False
 
 def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str, confirmada: bool = False):
     token = secrets.token_urlsafe(16)
@@ -382,7 +399,8 @@ async def api_agendar(cita: CitaRequest):
             status_code=409,
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
-    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono)
+    auto = get_auto_confirmar()
+    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=auto)
     notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
@@ -423,6 +441,48 @@ async def eliminar_cita(cita_id: int, request: Request):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM citas WHERE id = %s", (cita_id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
+
+@app.get("/api/config")
+async def get_config(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    return JSONResponse(content={"auto_confirmar": get_auto_confirmar()})
+
+@app.post("/api/config")
+async def set_config(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    body = await request.json()
+    valor = "true" if body.get("auto_confirmar") else "false"
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO config (clave, valor) VALUES ('auto_confirmar', %s) ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor",
+        (valor,)
+    )
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
+
+@app.post("/api/citas/confirmar-lote")
+async def confirmar_lote(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    body = await request.json()
+    ids = body.get("ids", [])
+    if not ids:
+        return JSONResponse(content={"status": "ok"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    for cita_id in ids:
+        cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
+        cursor.execute("SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token FROM citas WHERE id = %s", (cita_id,))
+        cita = cursor.fetchone()
+        if cita and cita[4]:
+            enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
     conn.commit()
     conn.close()
     return JSONResponse(content={"status": "ok"})
