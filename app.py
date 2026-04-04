@@ -189,14 +189,16 @@ def calcular_slots(fecha: str, duracion: int):
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str):
     try:
         account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        api_key = os.environ.get("TWILIO_API_KEY")
+        api_secret = os.environ.get("TWILIO_API_SECRET")
         from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
-        if not all([account_sid, auth_token, from_number, telefono]):
+        if not all([account_sid, api_key, api_secret, from_number, telefono]):
+            print("[Twilio] Faltan variables de entorno")
             return
         fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
         hora_dt = datetime.strptime(hora, "%H:%M")
         hora_leg = hora_dt.strftime("%I:%M %p").lstrip("0")
-        cliente = TwilioClient(account_sid, auth_token)
+        cliente = TwilioClient(api_key, api_secret, account_sid)
         cliente.messages.create(
             from_=from_number,
             to=f"whatsapp:+521{telefono}",
