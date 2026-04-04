@@ -199,7 +199,7 @@ def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fech
         cliente = TwilioClient(account_sid, auth_token)
         cliente.messages.create(
             from_=from_number,
-            to=f"whatsapp:+52{telefono}",
+            to=f"whatsapp:+521{telefono}",
             body=f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n📅 Fecha: {fecha_leg}\n⏰ Hora: {hora_leg}\n🦷 Servicio: {servicio}\n\nLe esperamos en Paseo de las Américas 2213, Guadalupe N.L. Cualquier duda llámenos al 81 1679 8832."
         )
     except Exception:
