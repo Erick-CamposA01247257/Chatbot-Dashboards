@@ -495,12 +495,6 @@ class LoginRequest(BaseModel):
 async def health_head():
     return Response()
 
-@app.post("/api/test-backup")
-async def test_backup(request: Request):
-    if not verificar_sesion(request):
-        return JSONResponse(status_code=401, content={"error": "No autorizado"})
-    enviar_backup_semanal()
-    return JSONResponse(content={"status": "ok", "mensaje": "Backup enviado, revisa tu correo"})
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
