@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu cita — MOSADENT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --verde: #1B5E3B;
+            --verde-mid: #2D7A52;
+            --verde-light: #E8F2EC;
+            --dorado: #C4A35A;
+            --dorado-light: #F5EDD8;
+            --crema: #FAF8F4;
+            --crema-chat: #F0EBE3;
+            --texto: #2C2C2A;
+            --texto-muted: #7A7570;
+            --borde: rgba(196,163,90,0.2);
+            --rojo: #B91C1C;
+            --rojo-light: #FEF2F2;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--crema-chat);
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: var(--crema);
+            border: 1px solid var(--borde);
+            border-radius: 16px;
+            padding: 32px 28px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--verde);
+            letter-spacing: 1px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .titulo {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--texto);
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .subtitulo {
+            font-size: 13px;
+            color: var(--texto-muted);
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .detalle {
+            background: var(--verde-light);
+            border: 1px solid rgba(27,94,59,0.15);
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 28px;
+        }
+
+        .detalle-fila {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(27,94,59,0.08);
+        }
+
+        .detalle-fila:last-child { border-bottom: none; }
+
+        .detalle-label {
+            color: var(--texto-muted);
+            font-weight: 300;
+        }
+
+        .detalle-valor {
+            color: var(--verde);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .acciones {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-reagendar {
+            background: var(--verde);
+            color: #fff;
+        }
+
+        .btn-cancelar {
+            background: transparent;
+            color: var(--rojo);
+            border: 1px solid rgba(185,28,28,0.25);
+        }
+
+        .btn-cancelar:hover { background: var(--rojo-light); }
+
+        /* Estado success */
+        .estado {
+            display: none;
+            text-align: center;
+            padding: 20px 0 8px;
+        }
+
+        .estado.visible { display: block; }
+
+        .estado-icono {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .estado-titulo {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--texto);
+            margin-bottom: 6px;
+        }
+
+        .estado-desc {
+            font-size: 13px;
+            color: var(--texto-muted);
+            line-height: 1.5;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="logo">MOSADENT</div>
+
+    <div id="vista-cita">
+        <div class="titulo">Tu cita está confirmada</div>
+        <div class="subtitulo">¿Deseas hacer algún cambio?</div>
+
+        <div class="detalle">
+            <div class="detalle-fila">
+                <span class="detalle-label">Paciente</span>
+                <span class="detalle-valor">{{nombre}}</span>
+            </div>
+            <div class="detalle-fila">
+                <span class="detalle-label">Servicio</span>
+                <span class="detalle-valor">{{servicio}}</span>
+            </div>
+            <div class="detalle-fila">
+                <span class="detalle-label">Fecha</span>
+                <span class="detalle-valor">{{fecha}}</span>
+            </div>
+            <div class="detalle-fila">
+                <span class="detalle-label">Hora</span>
+                <span class="detalle-valor">{{hora}}</span>
+            </div>
+        </div>
+
+        <div class="acciones">
+            <button class="btn btn-reagendar" onclick="reagendar()">
+                Reagendar cita
+            </button>
+            <button class="btn btn-cancelar" onclick="cancelar()">
+                Cancelar cita
+            </button>
+        </div>
+    </div>
+
+    <div id="estado-cancelado" class="estado">
+        <div class="estado-icono">✓</div>
+        <div class="estado-titulo">Cita cancelada</div>
+        <div class="estado-desc">Tu cita ha sido cancelada.<br>Si necesitas reagendar, visita nuestro chat.</div>
+    </div>
+
+    <div id="estado-error" class="estado">
+        <div class="estado-icono">⚠</div>
+        <div class="estado-titulo">Enlace no válido</div>
+        <div class="estado-desc">Este enlace ya fue usado o expiró.<br>Contáctanos directamente si necesitas ayuda.</div>
+    </div>
+</div>
+
+<script>
+    const TOKEN = "{{token}}";
+
+    async function cancelar() {
+        const btn = document.querySelector('.btn-cancelar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Cancelando...';
+
+        try {
+            const res = await fetch(`/api/cancelar/${TOKEN}`, { method: 'POST' });
+            if (res.ok) {
+                mostrarEstado('cancelado');
+            } else if (res.status === 404) {
+                mostrarEstado('error');
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Cancelar cita';
+                alert('Hubo un error, intenta de nuevo.');
+            }
+        } catch {
+            btn.disabled = false;
+            btn.textContent = 'Cancelar cita';
+            alert('Error de conexión, intenta de nuevo.');
+        }
+    }
+
+    async function reagendar() {
+        const btn = document.querySelector('.btn-reagendar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Procesando...';
+
+        try {
+            const res = await fetch(`/api/cancelar/${TOKEN}`, { method: 'POST' });
+            if (res.ok || res.status === 404) {
+                // Si ya no existe la cita o se canceló exitosamente, redirigir al chat
+                window.location.href = '/';
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Reagendar cita';
+                alert('Hubo un error, intenta de nuevo.');
+            }
+        } catch {
+            btn.disabled = false;
+            btn.textContent = 'Reagendar cita';
+            alert('Error de conexión, intenta de nuevo.');
+        }
+    }
+
+    function mostrarEstado(tipo) {
+        document.getElementById('vista-cita').style.display = 'none';
+        document.getElementById(`estado-${tipo}`).classList.add('visible');
+    }
+</script>
+
+</body>
+</html>

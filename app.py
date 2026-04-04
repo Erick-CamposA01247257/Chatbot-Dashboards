@@ -12,6 +12,7 @@ import hashlib
 import secrets
 from datetime import date, datetime, timedelta
 from twilio.rest import Client as TwilioClient
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 load_dotenv()
 
@@ -100,21 +101,24 @@ def init_db():
             duracion INTEGER NOT NULL,
             fecha_registro TEXT NOT NULL,
             telefono TEXT NOT NULL DEFAULT '',
-            confirmada BOOLEAN NOT NULL DEFAULT FALSE
+            confirmada BOOLEAN NOT NULL DEFAULT FALSE,
+            cancelacion_token TEXT
         )
     """)
     cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS telefono TEXT NOT NULL DEFAULT ''")
     cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS confirmada BOOLEAN NOT NULL DEFAULT FALSE")
+    cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS cancelacion_token TEXT")
     conn.commit()
     conn.close()
 
 def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str, confirmada: bool = False):
+    token = secrets.token_urlsafe(16)
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono, confirmada))
+        INSERT INTO citas (nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada, cancelacion_token)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono, confirmada, token))
     conn.commit()
     conn.close()
 
@@ -186,25 +190,70 @@ def calcular_slots(fecha: str, duracion: int):
 # PROCESO — Auth determinístico
 # ============================================
 
-def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str):
+def get_twilio_client():
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    api_key = os.environ.get("TWILIO_API_KEY")
+    api_secret = os.environ.get("TWILIO_API_SECRET")
+    from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
+    if not all([account_sid, api_key, api_secret, from_number]):
+        return None, None
+    return TwilioClient(api_key, api_secret, account_sid), from_number
+
+def enviar_whatsapp(telefono: str, mensaje: str):
     try:
-        account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-        api_key = os.environ.get("TWILIO_API_KEY")
-        api_secret = os.environ.get("TWILIO_API_SECRET")
-        from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
-        if not all([account_sid, api_key, api_secret, from_number, telefono]):
+        cliente, from_number = get_twilio_client()
+        if not cliente or not telefono:
             return
-        fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
-        hora_dt = datetime.strptime(hora, "%H:%M")
-        hora_leg = hora_dt.strftime("%I:%M %p").lstrip("0")
-        cliente = TwilioClient(api_key, api_secret, account_sid)
         cliente.messages.create(
             from_=from_number,
             to=f"whatsapp:+521{telefono}",
-            body=f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n📅 Fecha: {fecha_leg}\n⏰ Hora: {hora_leg}\n🦷 Servicio: {servicio}\n\nLe esperamos en Paseo de las Américas 2213, Guadalupe N.L. Cualquier duda llámenos al 81 1679 8832."
+            body=mensaje
         )
     except Exception:
         pass
+
+def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
+    fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
+    hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
+    base_url = os.environ.get("BASE_URL", "https://mosadent.up.railway.app")
+    enviar_whatsapp(telefono, (
+        f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n"
+        f"📅 Fecha: {fecha_leg}\n"
+        f"⏰ Hora: {hora_leg}\n"
+        f"🦷 Servicio: {servicio}\n\n"
+        f"Le esperamos en Paseo de las Américas 2213, Guadalupe N.L.\n"
+        f"Cualquier duda llámenos al 81 1679 8832.\n\n"
+        f"¿Necesita cancelar o reagendar? Entre aquí:\n{base_url}/cancelar/{token}"
+    ))
+
+def enviar_recordatorios():
+    ahora_mexico = datetime.now() - timedelta(hours=6)
+    manana = (ahora_mexico + timedelta(days=1)).strftime("%Y-%m-%d")
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token
+            FROM citas WHERE fecha = %s AND confirmada = TRUE AND telefono != ''
+        """, (manana,))
+        citas = cursor.fetchall()
+        conn.close()
+    except Exception:
+        return
+    base_url = os.environ.get("BASE_URL", "https://mosadent.up.railway.app")
+    for cita in citas:
+        nombre, servicio, fecha, hora, telefono, token = cita
+        fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
+        hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
+        enviar_whatsapp(telefono, (
+            f"⏰ Recordatorio MOSADENT\n\n"
+            f"Hola {nombre}, le recordamos que mañana tiene una cita:\n\n"
+            f"📅 Fecha: {fecha_leg}\n"
+            f"⏰ Hora: {hora_leg}\n"
+            f"🦷 Servicio: {servicio}\n\n"
+            f"Le esperamos en Paseo de las Américas 2213, Guadalupe N.L.\n\n"
+            f"¿Necesita cancelar o reagendar?\n{base_url}/cancelar/{token}"
+        ))
 
 def get_token_valido():
     data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
@@ -217,6 +266,10 @@ def verificar_sesion(request: Request):
     return token == get_token_valido()
 
 init_db()
+
+scheduler = AsyncIOScheduler()
+scheduler.add_job(enviar_recordatorios, "cron", hour=14, minute=0)  # 8 AM México (UTC-6 = 14:00 UTC)
+scheduler.start()
 
 # ============================================
 # PROCESO — Modelos
@@ -337,11 +390,11 @@ async def confirmar_cita(cita_id: int, request: Request):
     cursor = conn.cursor()
     cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
     conn.commit()
-    cursor.execute("SELECT nombre, servicio, fecha, hora, telefono FROM citas WHERE id = %s", (cita_id,))
+    cursor.execute("SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token FROM citas WHERE id = %s", (cita_id,))
     cita = cursor.fetchone()
     conn.close()
     if cita and cita[4]:
-        enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3])
+        enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
     return JSONResponse(content={"status": "ok"})
 
 @app.delete("/api/citas/{cita_id}")
@@ -351,6 +404,39 @@ async def eliminar_cita(cita_id: int, request: Request):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM citas WHERE id = %s", (cita_id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
+
+@app.get("/cancelar/{token}", response_class=HTMLResponse)
+async def cancelar_page(token: str):
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT nombre, servicio, fecha, hora FROM citas WHERE cancelacion_token = %s", (token,))
+    cita = cursor.fetchone()
+    conn.close()
+    if not cita:
+        return HTMLResponse("<h2 style='font-family:sans-serif;padding:40px'>Esta cita ya fue cancelada o el link no es válido.</h2>")
+    nombre, servicio, fecha, hora = cita
+    fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
+    hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
+    with open("templates/cancelar.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    html = html.replace("{{nombre}}", nombre).replace("{{servicio}}", servicio)
+    html = html.replace("{{fecha}}", fecha_leg).replace("{{hora}}", hora_leg)
+    html = html.replace("{{token}}", token)
+    return html
+
+@app.post("/api/cancelar/{token}")
+async def api_cancelar(token: str):
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM citas WHERE cancelacion_token = %s", (token,))
+    cita = cursor.fetchone()
+    if not cita:
+        conn.close()
+        return JSONResponse(status_code=404, content={"error": "Cita no encontrada"})
+    cursor.execute("DELETE FROM citas WHERE cancelacion_token = %s", (token,))
     conn.commit()
     conn.close()
     return JSONResponse(content={"status": "ok"})
