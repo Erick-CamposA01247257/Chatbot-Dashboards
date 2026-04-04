@@ -11,6 +11,7 @@ import os
 import hashlib
 import secrets
 from datetime import date, datetime, timedelta
+from twilio.rest import Client as TwilioClient
 
 load_dotenv()
 
@@ -185,6 +186,25 @@ def calcular_slots(fecha: str, duracion: int):
 # PROCESO — Auth determinístico
 # ============================================
 
+def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str):
+    try:
+        account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
+        if not all([account_sid, auth_token, from_number, telefono]):
+            return
+        fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
+        hora_dt = datetime.strptime(hora, "%H:%M")
+        hora_leg = hora_dt.strftime("%I:%M %p").lstrip("0")
+        cliente = TwilioClient(account_sid, auth_token)
+        cliente.messages.create(
+            from_=from_number,
+            to=f"whatsapp:+52{telefono}",
+            body=f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n📅 Fecha: {fecha_leg}\n⏰ Hora: {hora_leg}\n🦷 Servicio: {servicio}\n\nLe esperamos en Paseo de las Américas 2213, Guadalupe N.L. Cualquier duda llámenos al 81 1679 8832."
+        )
+    except Exception:
+        pass
+
 def get_token_valido():
     data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
     return hashlib.sha256(data.encode()).hexdigest()
@@ -316,7 +336,11 @@ async def confirmar_cita(cita_id: int, request: Request):
     cursor = conn.cursor()
     cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
     conn.commit()
+    cursor.execute("SELECT nombre, servicio, fecha, hora, telefono FROM citas WHERE id = %s", (cita_id,))
+    cita = cursor.fetchone()
     conn.close()
+    if cita and cita[4]:
+        enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3])
     return JSONResponse(content={"status": "ok"})
 
 @app.delete("/api/citas/{cita_id}")
