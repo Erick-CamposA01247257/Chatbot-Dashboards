@@ -271,17 +271,14 @@ def enviar_whatsapp(telefono: str, mensaje: str):
     try:
         cliente, from_number = get_twilio_client()
         if not cliente or not telefono:
-            print(f"[WhatsApp] Skipped: cliente={bool(cliente)} telefono={repr(telefono)}")
             return
-        print(f"[WhatsApp] Enviando a +521{telefono}")
         cliente.messages.create(
             from_=from_number,
             to=f"whatsapp:+521{telefono}",
             body=mensaje
         )
-        print(f"[WhatsApp] Enviado OK")
-    except Exception as e:
-        print(f"[WhatsApp Error] {repr(e)}")
+    except Exception:
+        pass
 
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
     fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
