@@ -10,6 +10,13 @@ import psycopg2
 import os
 import hashlib
 import secrets
+import csv
+import io
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import date, datetime, timedelta
 from twilio.rest import Client as TwilioClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,6 +29,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER") or ""
+GMAIL_USER = os.environ.get("GMAIL_USER") or ""
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD") or ""
+BACKUP_EMAIL = os.environ.get("BACKUP_EMAIL") or GMAIL_USER
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD") or ""
 ASSISTANT_USER = os.environ.get("ASSISTANT_USER") or ""
 ASSISTANT_PASSWORD = os.environ.get("ASSISTANT_PASSWORD") or ""
@@ -369,6 +379,58 @@ def enviar_recordatorio_irregulares():
             f"Llámenos al 81 1679 8832."
         ))
 
+def enviar_backup_semanal():
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD or not BACKUP_EMAIL:
+        return
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        archivos = {}
+
+        # Exportar cada tabla como CSV en memoria
+        tablas = {
+            "citas": "SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada, no_show FROM citas ORDER BY fecha, hora",
+            "bloqueos": "SELECT id, fecha, hora_inicio, hora_fin, motivo FROM bloqueos ORDER BY fecha",
+            "auditoria": "SELECT id, usuario, rol, accion, detalle, fecha_hora FROM auditoria ORDER BY id DESC",
+        }
+        for nombre_tabla, query in tablas.items():
+            cursor.execute(query)
+            filas = cursor.fetchall()
+            headers = [desc[0] for desc in cursor.description]
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow(headers)
+            writer.writerows(filas)
+            archivos[f"{nombre_tabla}.csv"] = buf.getvalue()
+
+        conn.close()
+
+        fecha_hoy = (datetime.now() - timedelta(hours=6)).strftime("%d/%m/%Y")
+        msg = MIMEMultipart()
+        msg["From"] = GMAIL_USER
+        msg["To"] = BACKUP_EMAIL
+        msg["Subject"] = f"Backup semanal MOSADENT — {fecha_hoy}"
+        msg.attach(MIMEText(
+            f"Backup automático semanal del sistema MOSADENT.\n"
+            f"Fecha: {fecha_hoy}\n\n"
+            f"Se adjuntan los archivos CSV con citas, bloqueos y auditoría.",
+            "plain"
+        ))
+
+        for nombre_archivo, contenido in archivos.items():
+            parte = MIMEBase("application", "octet-stream")
+            parte.set_payload(contenido.encode("utf-8"))
+            encoders.encode_base64(parte)
+            parte.add_header("Content-Disposition", f"attachment; filename={nombre_archivo}")
+            msg.attach(parte)
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
+            servidor.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            servidor.sendmail(GMAIL_USER, BACKUP_EMAIL, msg.as_string())
+
+    except Exception as e:
+        print(f"[Backup Error] {repr(e)}")
+
 def get_token_para(usuario: str, password: str) -> str:
     data = f"{usuario}:{password}:{SESSION_SECRET}"
     return hashlib.sha256(data.encode()).hexdigest()
@@ -401,8 +463,9 @@ def registrar_auditoria(usuario: str, rol: str, accion: str, detalle: str):
 init_db()
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(enviar_recordatorios, "cron", hour=14, minute=0)          # 8 AM México
-scheduler.add_job(enviar_recordatorio_irregulares, "cron", hour=13, minute=0)  # 7 AM México
+scheduler.add_job(enviar_recordatorios, "cron", hour=14, minute=0)                        # 8 AM México
+scheduler.add_job(enviar_recordatorio_irregulares, "cron", hour=13, minute=0)              # 7 AM México
+scheduler.add_job(enviar_backup_semanal, "cron", day_of_week="mon", hour=14, minute=30)   # Lunes 8:30 AM México
 scheduler.start()
 
 # ============================================
