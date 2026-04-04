@@ -447,12 +447,12 @@ async def api_login(request: Request, datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         token = get_token_para(DASHBOARD_USER, DASHBOARD_PASSWORD)
         resp = JSONResponse(content={"status": "ok", "rol": "doctor"})
-        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=86400, samesite="lax")
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="lax")
         return resp
     if ASSISTANT_USER and datos.usuario == ASSISTANT_USER and datos.password == ASSISTANT_PASSWORD:
         token = get_token_para(ASSISTANT_USER, ASSISTANT_PASSWORD)
         resp = JSONResponse(content={"status": "ok", "rol": "asistente"})
-        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=86400, samesite="lax")
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="lax")
         return resp
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
