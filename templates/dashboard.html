@@ -440,6 +440,43 @@
         }
         .btn-nueva-cita:hover { background: var(--azul-dark); }
 
+        /* ── Auditoría ── */
+        .btn-auditoria {
+            width: 30px; height: 30px;
+            border: 1px solid var(--borde); border-radius: 8px;
+            background: var(--surface); cursor: pointer;
+            font-size: 15px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; color: var(--texto-mid); flex-shrink: 0;
+        }
+        .btn-auditoria:hover { background: var(--azul-light); border-color: var(--azul-mid); }
+        .auditoria-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .auditoria-tabla th {
+            text-align: left; padding: 8px 10px;
+            font-size: 10px; font-weight: 600; color: var(--texto-muted);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--borde); background: var(--bg);
+        }
+        .auditoria-tabla td {
+            padding: 9px 10px; border-bottom: 1px solid var(--borde);
+            color: var(--texto-mid); vertical-align: top;
+        }
+        .auditoria-tabla tr:last-child td { border-bottom: none; }
+        .auditoria-tabla tr:hover td { background: var(--bg); }
+        .badge-rol-doctor {
+            background: var(--azul-light); color: var(--azul-dark);
+            border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 500;
+        }
+        .badge-rol-asistente {
+            background: #FDF4FF; color: #7E22CE;
+            border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 500;
+        }
+        .accion-eliminar { color: #DC2626; }
+        .accion-confirmar { color: #16A34A; }
+        .accion-crear { color: var(--azul-dark); }
+        .accion-bloqueo { color: #D97706; }
+        .modal-auditoria { max-width: 640px; }
+        .auditoria-scroll { max-height: 400px; overflow-y: auto; margin-top: 16px; border: 1px solid var(--borde); border-radius: 8px; }
+
         /* ── Toggle auto-confirmar ── */
         .toggle-wrap {
             display: flex; align-items: center; gap: 7px;
@@ -570,6 +607,7 @@
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
+        <button class="btn-auditoria" id="btn-auditoria" onclick="abrirAuditoria()" title="Ver auditoría" style="display:none">🔍</button>
         <label class="toggle-wrap" title="Confirmar citas automáticamente al agendar">
             <input type="checkbox" id="toggle-autoconfirmar" onchange="cambiarAutoConfirmar(this.checked)">
             <div class="toggle-track"><div class="toggle-thumb"></div></div>
@@ -677,6 +715,19 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modal-auditoria-overlay" onclick="cerrarAuditoria(event)">
+    <div class="modal modal-auditoria">
+        <div class="modal-header">
+            <div class="modal-titulo">🔍 Registro de actividad</div>
+            <button class="modal-close" onclick="document.getElementById('modal-auditoria-overlay').classList.remove('visible')">✕</button>
+        </div>
+        <div style="font-size:12px;color:var(--texto-muted)">Últimas 100 acciones registradas en el sistema.</div>
+        <div class="auditoria-scroll" id="auditoria-contenido">
+            <div style="text-align:center;padding:32px;color:var(--texto-muted);font-size:13px">Cargando...</div>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modal-bloqueo-overlay" onclick="cerrarBloqueo(event)">
     <div class="modal" id="modal-bloqueo">
         <div class="modal-header">
@@ -765,6 +816,8 @@
     const HORA_FIN = 19
     const ALTURA_HORA = 72
 
+    let rolActual = null
+    let usuarioActual = null
     let todasLasCitas = []
     let todosLosBloqueos = []
     let fechaSeleccionada = new Date().toISOString().split("T")[0]
@@ -1322,13 +1375,62 @@
         btn.textContent = "Confirmar"
     }
 
+    // ── Auditoría ──
+    async function abrirAuditoria() {
+        document.getElementById("modal-auditoria-overlay").classList.add("visible")
+        const contenido = document.getElementById("auditoria-contenido")
+        contenido.innerHTML = `<div style="text-align:center;padding:32px;color:var(--texto-muted);font-size:13px">Cargando...</div>`
+        const res = await fetch("/api/auditoria")
+        if (!res.ok) { contenido.innerHTML = `<div style="padding:20px;color:#DC2626">Sin acceso.</div>`; return }
+        const data = await res.json()
+        if (!data.registros.length) {
+            contenido.innerHTML = `<div style="text-align:center;padding:32px;color:var(--texto-muted);font-size:13px">Sin registros aún.</div>`
+            return
+        }
+        const accionClase = a => {
+            if (a.includes("Eliminó")) return "accion-eliminar"
+            if (a.includes("Confirmó")) return "accion-confirmar"
+            if (a.includes("Creó")) return "accion-crear"
+            return "accion-bloqueo"
+        }
+        contenido.innerHTML = `
+            <table class="auditoria-tabla">
+                <thead><tr>
+                    <th>Fecha/Hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th>
+                </tr></thead>
+                <tbody>
+                    ${data.registros.map(r => `
+                        <tr>
+                            <td style="white-space:nowrap">${r.fecha_hora}</td>
+                            <td><span class="badge-rol-${r.rol}">${escaparHTML(r.usuario)}</span></td>
+                            <td class="${accionClase(r.accion)}">${escaparHTML(r.accion)}</td>
+                            <td>${escaparHTML(r.detalle)}</td>
+                        </tr>`).join("")}
+                </tbody>
+            </table>`
+    }
+
+    function cerrarAuditoria(e) {
+        if (e.target === document.getElementById("modal-auditoria-overlay"))
+            document.getElementById("modal-auditoria-overlay").classList.remove("visible")
+    }
+
     // ── Auto-confirmar ──
     async function cargarConfig() {
         try {
-            const res = await fetch("/api/config")
-            if (!res.ok) return
-            const data = await res.json()
-            document.getElementById("toggle-autoconfirmar").checked = data.auto_confirmar
+            const [resConfig, resMe] = await Promise.all([fetch("/api/config"), fetch("/api/me")])
+            if (resConfig.ok) {
+                const data = await resConfig.json()
+                document.getElementById("toggle-autoconfirmar").checked = data.auto_confirmar
+            }
+            if (resMe.ok) {
+                const me = await resMe.json()
+                rolActual = me.rol
+                usuarioActual = me.usuario
+                if (me.rol === "doctor") {
+                    document.getElementById("btn-auditoria").style.display = "flex"
+                }
+            }
         } catch {}
     }
 

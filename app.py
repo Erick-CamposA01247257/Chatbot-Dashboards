@@ -23,6 +23,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER") or ""
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD") or ""
+ASSISTANT_USER = os.environ.get("ASSISTANT_USER") or ""
+ASSISTANT_PASSWORD = os.environ.get("ASSISTANT_PASSWORD") or ""
 SESSION_SECRET = os.environ.get("SESSION_SECRET") or ""
 DOCTOR_PHONE = os.environ.get("DOCTOR_PHONE") or ""
 
@@ -122,6 +124,16 @@ def init_db():
             hora_inicio TEXT,
             hora_fin TEXT,
             motivo TEXT DEFAULT ''
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria (
+            id SERIAL PRIMARY KEY,
+            usuario TEXT NOT NULL,
+            rol TEXT NOT NULL,
+            accion TEXT NOT NULL,
+            detalle TEXT NOT NULL,
+            fecha_hora TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -318,15 +330,34 @@ def enviar_recordatorios():
             f"¿Necesita cancelar o reagendar?\n{base_url}/cancelar/{token}"
         ))
 
-def get_token_valido():
-    data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
+def get_token_para(usuario: str, password: str) -> str:
+    data = f"{usuario}:{password}:{SESSION_SECRET}"
     return hashlib.sha256(data.encode()).hexdigest()
 
-def verificar_sesion(request: Request):
+def verificar_sesion(request: Request) -> str | None:
+    """Retorna 'doctor', 'asistente', o None si no hay sesión válida."""
     token = request.cookies.get("session_token")
     if not token:
-        return False
-    return token == get_token_valido()
+        return None
+    if DASHBOARD_USER and token == get_token_para(DASHBOARD_USER, DASHBOARD_PASSWORD):
+        return "doctor"
+    if ASSISTANT_USER and token == get_token_para(ASSISTANT_USER, ASSISTANT_PASSWORD):
+        return "asistente"
+    return None
+
+def registrar_auditoria(usuario: str, rol: str, accion: str, detalle: str):
+    try:
+        ahora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
+        conn = get_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO auditoria (usuario, rol, accion, detalle, fecha_hora) VALUES (%s, %s, %s, %s, %s)",
+            (usuario, rol, accion, detalle, ahora)
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 init_db()
 
@@ -371,15 +402,14 @@ async def login_page():
 @limiter.limit("10/minute")
 async def api_login(request: Request, datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
-        token = get_token_valido()
-        resp = JSONResponse(content={"status": "ok"})
-        resp.set_cookie(
-            key="session_token",
-            value=token,
-            httponly=True,
-            max_age=86400,
-            samesite="lax"
-        )
+        token = get_token_para(DASHBOARD_USER, DASHBOARD_PASSWORD)
+        resp = JSONResponse(content={"status": "ok", "rol": "doctor"})
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=86400, samesite="lax")
+        return resp
+    if ASSISTANT_USER and datos.usuario == ASSISTANT_USER and datos.password == ASSISTANT_PASSWORD:
+        token = get_token_para(ASSISTANT_USER, ASSISTANT_PASSWORD)
+        resp = JSONResponse(content={"status": "ok", "rol": "asistente"})
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=86400, samesite="lax")
         return resp
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
@@ -405,6 +435,14 @@ async def panel_dashboard(request: Request):
         return RedirectResponse(url="/login")
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
         return f.read()
+
+@app.get("/api/me")
+async def api_me(request: Request):
+    rol = verificar_sesion(request)
+    if not rol:
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+    return JSONResponse(content={"rol": rol, "usuario": usuario})
 
 @app.get("/api/citas")
 async def api_citas(request: Request):
@@ -435,7 +473,8 @@ async def api_agendar(cita: CitaRequest):
 
 @app.post("/api/agendar-dashboard")
 async def api_agendar_dashboard(cita: CitaRequest, request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     duracion = get_duracion(cita.servicio)
     slots = calcular_slots(cita.fecha, duracion)
@@ -446,11 +485,14 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request):
         )
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
     notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
+    usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+    registrar_auditoria(usuario, rol, "crear_cita", f"{cita.nombre} — {cita.servicio} — {cita.fecha} {cita.hora}")
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.patch("/api/citas/{cita_id}/confirmar")
 async def confirmar_cita(cita_id: int, request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     conn = get_conn()
     cursor = conn.cursor()
@@ -459,19 +501,28 @@ async def confirmar_cita(cita_id: int, request: Request):
     cursor.execute("SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token FROM citas WHERE id = %s", (cita_id,))
     cita = cursor.fetchone()
     conn.close()
-    if cita and cita[4]:
-        enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+    if cita:
+        if cita[4]:
+            enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+        registrar_auditoria(usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     return JSONResponse(content={"status": "ok"})
 
 @app.delete("/api/citas/{cita_id}")
 async def eliminar_cita(cita_id: int, request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     conn = get_conn()
     cursor = conn.cursor()
+    cursor.execute("SELECT nombre, servicio, fecha, hora FROM citas WHERE id = %s", (cita_id,))
+    cita = cursor.fetchone()
     cursor.execute("DELETE FROM citas WHERE id = %s", (cita_id,))
     conn.commit()
     conn.close()
+    if cita:
+        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+        registrar_auditoria(usuario, rol, "eliminar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     return JSONResponse(content={"status": "ok"})
 
 @app.get("/api/config")
@@ -482,7 +533,8 @@ async def get_config(request: Request):
 
 @app.post("/api/config")
 async def set_config(request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     body = await request.json()
     valor = "true" if body.get("auto_confirmar") else "false"
@@ -498,7 +550,8 @@ async def set_config(request: Request):
 
 @app.post("/api/citas/confirmar-lote")
 async def confirmar_lote(request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     body = await request.json()
     ids = body.get("ids", [])
@@ -506,15 +559,43 @@ async def confirmar_lote(request: Request):
         return JSONResponse(content={"status": "ok"})
     conn = get_conn()
     cursor = conn.cursor()
+    usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
     for cita_id in ids:
         cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
         cursor.execute("SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token FROM citas WHERE id = %s", (cita_id,))
         cita = cursor.fetchone()
-        if cita and cita[4]:
-            enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+        if cita:
+            if cita[4]:
+                enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+            registrar_auditoria(usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     conn.commit()
     conn.close()
     return JSONResponse(content={"status": "ok"})
+
+@app.get("/api/auditoria")
+async def get_auditoria(request: Request):
+    rol = verificar_sesion(request)
+    if rol != "doctor":
+        return JSONResponse(status_code=403, content={"error": "Solo el doctor puede ver la auditoría"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, usuario, rol, accion, detalle, fecha_hora FROM auditoria ORDER BY id DESC LIMIT 100")
+    filas = cursor.fetchall()
+    conn.close()
+    acciones_label = {
+        "crear_cita": "Creó cita",
+        "confirmar_cita": "Confirmó cita",
+        "eliminar_cita": "Eliminó cita",
+        "crear_bloqueo": "Bloqueó horario",
+        "eliminar_bloqueo": "Quitó bloqueo",
+    }
+    return JSONResponse(content={"registros": [
+        {
+            "id": f[0], "usuario": f[1], "rol": f[2],
+            "accion": acciones_label.get(f[3], f[3]),
+            "detalle": f[4], "fecha_hora": f[5]
+        } for f in filas
+    ]})
 
 @app.get("/api/bloqueos")
 async def get_bloqueos(request: Request):
@@ -531,7 +612,8 @@ async def get_bloqueos(request: Request):
 
 @app.post("/api/bloqueos")
 async def crear_bloqueo(request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     body = await request.json()
     fecha = body.get("fecha", "")
@@ -550,17 +632,27 @@ async def crear_bloqueo(request: Request):
     new_id = cursor.fetchone()[0]
     conn.commit()
     conn.close()
+    usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+    detalle = f"{fecha} — {'Todo el día' if todo_el_dia else f'{hora_inicio}–{hora_fin}'}" + (f" ({motivo})" if motivo else "")
+    registrar_auditoria(usuario, rol, "crear_bloqueo", detalle)
     return JSONResponse(content={"status": "ok", "id": new_id})
 
 @app.delete("/api/bloqueos/{bloqueo_id}")
 async def eliminar_bloqueo(bloqueo_id: int, request: Request):
-    if not verificar_sesion(request):
+    rol = verificar_sesion(request)
+    if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     conn = get_conn()
     cursor = conn.cursor()
+    cursor.execute("SELECT fecha, hora_inicio, hora_fin, motivo FROM bloqueos WHERE id = %s", (bloqueo_id,))
+    bloqueo = cursor.fetchone()
     cursor.execute("DELETE FROM bloqueos WHERE id = %s", (bloqueo_id,))
     conn.commit()
     conn.close()
+    if bloqueo:
+        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+        detalle = f"{bloqueo[0]} — {'Todo el día' if not bloqueo[1] else f'{bloqueo[1]}–{bloqueo[2]}'}" + (f" ({bloqueo[3]})" if bloqueo[3] else "")
+        registrar_auditoria(usuario, rol, "eliminar_bloqueo", detalle)
     return JSONResponse(content={"status": "ok"})
 
 @app.get("/cancelar/{token}", response_class=HTMLResponse)
