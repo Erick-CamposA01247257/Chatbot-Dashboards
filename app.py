@@ -115,6 +115,15 @@ def init_db():
             valor TEXT NOT NULL
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bloqueos (
+            id SERIAL PRIMARY KEY,
+            fecha TEXT NOT NULL,
+            hora_inicio TEXT,
+            hora_fin TEXT,
+            motivo TEXT DEFAULT ''
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -166,13 +175,33 @@ def get_duracion(servicio: str) -> int:
             return val
     return DURACION_DEFAULT
 
+def obtener_bloqueos_fecha(fecha: str):
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, hora_inicio, hora_fin, motivo FROM bloqueos WHERE fecha = %s", (fecha,))
+    filas = cursor.fetchall()
+    conn.close()
+    return [{"id": f[0], "hora_inicio": f[1], "hora_fin": f[2], "motivo": f[3]} for f in filas]
+
 def calcular_slots(fecha: str, duracion: int):
     citas_del_dia = obtener_citas_por_fecha(fecha)
+    bloqueos_dia = obtener_bloqueos_fecha(fecha)
+
+    # Día completo bloqueado
+    if any(b["hora_inicio"] is None for b in bloqueos_dia):
+        return []
+
     ocupados = []
     for c in citas_del_dia:
         inicio = datetime.strptime(f"{fecha} {c['hora']}", "%Y-%m-%d %H:%M")
         fin = inicio + timedelta(minutes=c["duracion"])
         ocupados.append((inicio, fin))
+
+    for b in bloqueos_dia:
+        if b["hora_inicio"] and b["hora_fin"]:
+            inicio = datetime.strptime(f"{fecha} {b['hora_inicio']}", "%Y-%m-%d %H:%M")
+            fin = datetime.strptime(f"{fecha} {b['hora_fin']}", "%Y-%m-%d %H:%M")
+            ocupados.append((inicio, fin))
 
     ahora_mexico = datetime.now() - timedelta(hours=6)
     hoy = ahora_mexico.strftime("%Y-%m-%d")
@@ -483,6 +512,53 @@ async def confirmar_lote(request: Request):
         cita = cursor.fetchone()
         if cita and cita[4]:
             enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok"})
+
+@app.get("/api/bloqueos")
+async def get_bloqueos(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, fecha, hora_inicio, hora_fin, motivo FROM bloqueos ORDER BY fecha, hora_inicio")
+    filas = cursor.fetchall()
+    conn.close()
+    return JSONResponse(content={"bloqueos": [
+        {"id": f[0], "fecha": f[1], "hora_inicio": f[2], "hora_fin": f[3], "motivo": f[4]} for f in filas
+    ]})
+
+@app.post("/api/bloqueos")
+async def crear_bloqueo(request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    body = await request.json()
+    fecha = body.get("fecha", "")
+    todo_el_dia = body.get("todo_el_dia", False)
+    hora_inicio = None if todo_el_dia else body.get("hora_inicio")
+    hora_fin = None if todo_el_dia else body.get("hora_fin")
+    motivo = body.get("motivo", "")
+    if not fecha:
+        return JSONResponse(status_code=400, content={"error": "Fecha requerida"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO bloqueos (fecha, hora_inicio, hora_fin, motivo) VALUES (%s, %s, %s, %s) RETURNING id",
+        (fecha, hora_inicio, hora_fin, motivo)
+    )
+    new_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return JSONResponse(content={"status": "ok", "id": new_id})
+
+@app.delete("/api/bloqueos/{bloqueo_id}")
+async def eliminar_bloqueo(bloqueo_id: int, request: Request):
+    if not verificar_sesion(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM bloqueos WHERE id = %s", (bloqueo_id,))
     conn.commit()
     conn.close()
     return JSONResponse(content={"status": "ok"})

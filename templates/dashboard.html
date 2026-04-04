@@ -505,6 +505,29 @@
             cursor: pointer; font-family: 'DM Sans', sans-serif;
         }
 
+        /* ── Bloqueos ── */
+        .cita-card.bloqueado {
+            border-left-color: #EF4444;
+            background: #FFF5F5;
+            cursor: pointer;
+        }
+        .cita-card.bloqueado .cita-paciente { color: #DC2626; }
+        .cita-card.bloqueado .cita-hora-badge { background: #FEE2E2; color: #DC2626; }
+        .mini-dia.tiene-bloqueo::before {
+            content: ''; display: block;
+            width: 3px; height: 3px;
+            background: #EF4444; border-radius: 50%;
+            margin: 1px auto 0;
+        }
+        .mini-dia.seleccionado.tiene-bloqueo::before { background: rgba(255,200,200,0.9); }
+        .grid-bloque.bloqueado {
+            background: #FEE2E2;
+            border-color: #FECACA;
+            border-left-color: #EF4444;
+        }
+        .grid-bloque.bloqueado .grid-bloque-nombre { color: #DC2626; }
+        .grid-bloque.bloqueado .grid-bloque-detalle { color: #EF4444; }
+
         /* ── Responsive móvil ── */
         @media (max-width: 640px) {
             .header-divider { display: none; }
@@ -552,6 +575,7 @@
             <div class="toggle-track"><div class="toggle-thumb"></div></div>
             <span class="toggle-label">Auto</span>
         </label>
+        <button class="btn-nueva-cita" style="background:var(--bg);color:var(--texto-mid);border:1px solid var(--borde)" onclick="abrirBloqueo()">🚫 Bloquear</button>
         <button class="btn-nueva-cita" onclick="abrirNuevaCita()">+ Nueva cita</button>
     </div>
 </div>
@@ -653,6 +677,44 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modal-bloqueo-overlay" onclick="cerrarBloqueo(event)">
+    <div class="modal" id="modal-bloqueo">
+        <div class="modal-header">
+            <div class="modal-titulo">Bloquear horario</div>
+            <button class="modal-close" onclick="cerrarBloqueoDirecto()">✕</button>
+        </div>
+        <div class="form-campo">
+            <label>Fecha</label>
+            <input type="date" id="bl-fecha" />
+        </div>
+        <div class="form-campo">
+            <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+                <input type="checkbox" id="bl-todo-dia" onchange="toggleTodoDia(this.checked)" style="width:auto">
+                <span style="font-size:13px;color:var(--texto-mid);font-weight:400">Todo el día</span>
+            </label>
+        </div>
+        <div id="bl-horas-wrap">
+            <div class="form-campo">
+                <label>Desde</label>
+                <select id="bl-inicio"></select>
+            </div>
+            <div class="form-campo">
+                <label>Hasta</label>
+                <select id="bl-fin"></select>
+            </div>
+        </div>
+        <div class="form-campo">
+            <label>Motivo (opcional)</label>
+            <input type="text" id="bl-motivo" placeholder="Ej. Vacaciones, reunión..." maxlength="100" />
+        </div>
+        <div class="form-error" id="bl-error"></div>
+        <div class="modal-acciones">
+            <button class="btn-modal-confirmar" id="btn-bl-guardar" onclick="guardarBloqueo()">Guardar bloqueo</button>
+            <button class="btn-modal-eliminar" onclick="cerrarBloqueoDirecto()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <div class="main">
 
     <div class="panel-agenda" id="panel-agenda">
@@ -704,6 +766,7 @@
     const ALTURA_HORA = 72
 
     let todasLasCitas = []
+    let todosLosBloqueos = []
     let fechaSeleccionada = new Date().toISOString().split("T")[0]
     let calMes = new Date().getMonth()
     let calAño = new Date().getFullYear()
@@ -714,9 +777,14 @@
     const diasCortos = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
 
     async function cargarCitas() {
-        const res = await fetch("/api/citas")
-        const data = await res.json()
-        todasLasCitas = data.citas
+        const [resCitas, resBloqueos] = await Promise.all([
+            fetch("/api/citas"),
+            fetch("/api/bloqueos")
+        ])
+        const dataCitas = await resCitas.json()
+        const dataBloqueos = await resBloqueos.json()
+        todasLasCitas = dataCitas.citas
+        todosLosBloqueos = dataBloqueos.bloqueos
         render()
     }
 
@@ -766,6 +834,9 @@
             .filter(c => c.fecha === fechaSeleccionada)
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
+        const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
+        const diaBloqueado = bloqueosDelDia.some(b => !b.hora_inicio)
+
         const citasPorHora = {}
         citasDelDia.forEach(c => {
             const h = parseInt(c.hora.split(":")[0])
@@ -773,11 +844,33 @@
             citasPorHora[h].push(c)
         })
 
+        const bloqueosPorHora = {}
+        bloqueosDelDia.filter(b => b.hora_inicio).forEach(b => {
+            const h = parseInt(b.hora_inicio.split(":")[0])
+            if (!bloqueosPorHora[h]) bloqueosPorHora[h] = []
+            bloqueosPorHora[h].push(b)
+        })
+
         const timeline = document.getElementById("timeline")
         timeline.innerHTML = ""
 
+        if (diaBloqueado) {
+            const bloqueo = bloqueosDelDia.find(b => !b.hora_inicio)
+            const card = document.createElement("div")
+            card.style.cssText = "background:#FFF5F5;border:1px solid #FECACA;border-left:4px solid #EF4444;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"
+            card.innerHTML = `
+                <div>
+                    <div style="font-size:14px;font-weight:600;color:#DC2626">🚫 Día bloqueado</div>
+                    ${bloqueo.motivo ? `<div style="font-size:12px;color:#EF4444;margin-top:3px">${escaparHTML(bloqueo.motivo)}</div>` : ''}
+                </div>
+                <button onclick="eliminarBloqueo(${bloqueo.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:12px;color:#DC2626;cursor:pointer">Quitar</button>`
+            timeline.appendChild(card)
+        }
+
         for (let h = HORA_INICIO; h < HORA_FIN; h++) {
             const citas = citasPorHora[h]
+            const bloqs = bloqueosPorHora[h]
+            const tieneAlgo = citas || bloqs
             const slot = document.createElement("div")
             slot.className = "timeline-slot"
             slot.innerHTML = `
@@ -785,10 +878,18 @@
                     <span class="timeline-hora">${h}:00</span>
                 </div>
                 <div class="timeline-linea-col">
-                    <div class="timeline-punto ${citas ? 'activo' : ''}"></div>
+                    <div class="timeline-punto ${tieneAlgo ? 'activo' : ''}"></div>
                     <div class="timeline-linea"></div>
                 </div>
                 <div class="timeline-content">
+                    ${bloqs ? bloqs.map(b => `
+                        <div class="cita-card bloqueado" style="display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <div class="cita-card-header"><div class="cita-paciente">🚫 Bloqueado</div><div class="cita-hora-badge">${b.hora_inicio} – ${b.hora_fin}</div></div>
+                                ${b.motivo ? `<div class="cita-detalle">${escaparHTML(b.motivo)}</div>` : ''}
+                            </div>
+                            <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:11px;color:#DC2626;cursor:pointer;flex-shrink:0;margin-left:8px">Quitar</button>
+                        </div>`).join("") : ''}
                     ${citas ? citas.map(c => `
                         <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" id="card-${c.id}">
                             <div class="cita-card-header" style="display:flex;align-items:center">
@@ -803,7 +904,7 @@
                                 <div class="cita-detalle-sep"></div>
                                 <span>${c.duracion} min</span>
                             </div>
-                        </div>`).join("") : `<div class="hora-vacia">Disponible</div>`}
+                        </div>`).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
                 </div>`
             timeline.appendChild(slot)
         }
@@ -827,6 +928,7 @@
         const primerDia = new Date(calAño, calMes, 1).getDay()
         const totalDias = new Date(calAño, calMes + 1, 0).getDate()
         const fechasConCitas = new Set(todasLasCitas.map(c => c.fecha))
+        const fechasConBloqueo = new Set(todosLosBloqueos.map(b => b.fecha))
 
         for (let i = 0; i < primerDia; i++) grid.innerHTML += `<div></div>`
 
@@ -835,11 +937,13 @@
             const esHoy = fecha === hoyStr
             const seleccionado = fecha === fechaSeleccionada
             const tieneCitas = fechasConCitas.has(fecha)
+            const tieneBloqueo = fechasConBloqueo.has(fecha)
 
             grid.innerHTML += `<button class="mini-dia
                 ${esHoy ? 'hoy' : ''}
                 ${seleccionado ? 'seleccionado' : ''}
-                ${tieneCitas && !seleccionado ? 'tiene-citas' : ''}"
+                ${tieneCitas && !seleccionado ? 'tiene-citas' : ''}
+                ${tieneBloqueo ? 'tiene-bloqueo' : ''}"
                 onclick="seleccionarFecha('${fecha}')">${d}</button>`
         }
     }
@@ -868,14 +972,28 @@
             const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
             const bloque = document.createElement("div")
-            bloque.className = "grid-bloque"
-            bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute;`
             bloque.className = `grid-bloque ${cita.confirmada ? 'confirmado' : ''}`
-            bloque.style.cursor = "pointer"
+            bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre">${escaparHTML(cita.nombre)}</div>
                 <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
+            wrapper.appendChild(bloque)
+        })
+
+        const bloqueosDelDiaGrid = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
+        bloqueosDelDiaGrid.forEach(b => {
+            const [hh, mm] = b.hora_inicio.split(":").map(Number)
+            const [hh2, mm2] = b.hora_fin.split(":").map(Number)
+            const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
+            const durMin = (hh2 * 60 + mm2) - (hh * 60 + mm)
+            const height = Math.max((durMin / 60) * ALTURA_HORA - 4, 20)
+            const bloque = document.createElement("div")
+            bloque.className = "grid-bloque bloqueado"
+            bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute`
+            bloque.innerHTML = `
+                <div class="grid-bloque-nombre">🚫 ${b.motivo ? escaparHTML(b.motivo) : 'Bloqueado'}</div>
+                <div class="grid-bloque-detalle">${b.hora_inicio} – ${b.hora_fin}</div>`
             wrapper.appendChild(bloque)
         })
     }
@@ -1063,6 +1181,89 @@
             cerrarModalDirecto()
             await cargarCitas()
         }
+    }
+
+    // ── Bloqueos ──
+    function generarOpcionesHora() {
+        let opts = ''
+        for (let h = HORA_INICIO; h <= HORA_FIN; h++) {
+            for (let m of [0, 30]) {
+                if (h === HORA_FIN && m > 0) break
+                const hStr = String(h).padStart(2,'0')
+                const mStr = String(m).padStart(2,'0')
+                opts += `<option value="${hStr}:${mStr}">${convertir12h(`${hStr}:${mStr}`)}</option>`
+            }
+        }
+        return opts
+    }
+
+    function abrirBloqueo() {
+        const hoy = new Date().toISOString().split("T")[0]
+        document.getElementById("bl-fecha").value = fechaSeleccionada >= hoy ? fechaSeleccionada : hoy
+        document.getElementById("bl-todo-dia").checked = false
+        document.getElementById("bl-horas-wrap").style.display = "block"
+        document.getElementById("bl-motivo").value = ""
+        document.getElementById("bl-error").textContent = ""
+        document.getElementById("btn-bl-guardar").disabled = false
+        document.getElementById("btn-bl-guardar").textContent = "Guardar bloqueo"
+        const opts = generarOpcionesHora()
+        document.getElementById("bl-inicio").innerHTML = opts
+        document.getElementById("bl-fin").innerHTML = opts
+        document.getElementById("bl-fin").value = "12:00"
+        document.getElementById("modal-bloqueo-overlay").classList.add("visible")
+    }
+
+    function cerrarBloqueo(e) {
+        if (e.target === document.getElementById("modal-bloqueo-overlay")) cerrarBloqueoDirecto()
+    }
+
+    function cerrarBloqueoDirecto() {
+        document.getElementById("modal-bloqueo-overlay").classList.remove("visible")
+    }
+
+    function toggleTodoDia(checked) {
+        document.getElementById("bl-horas-wrap").style.display = checked ? "none" : "block"
+    }
+
+    async function guardarBloqueo() {
+        const fecha = document.getElementById("bl-fecha").value
+        const todoDia = document.getElementById("bl-todo-dia").checked
+        const horaInicio = document.getElementById("bl-inicio").value
+        const horaFin = document.getElementById("bl-fin").value
+        const motivo = document.getElementById("bl-motivo").value.trim()
+        const errorEl = document.getElementById("bl-error")
+
+        if (!fecha) { errorEl.textContent = "Selecciona una fecha."; return }
+        if (!todoDia && horaInicio >= horaFin) {
+            errorEl.textContent = "La hora de fin debe ser mayor a la de inicio."
+            return
+        }
+
+        const btn = document.getElementById("btn-bl-guardar")
+        btn.disabled = true
+        btn.textContent = "Guardando..."
+
+        const res = await fetch("/api/bloqueos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fecha, todo_el_dia: todoDia, hora_inicio: horaInicio, hora_fin: horaFin, motivo })
+        })
+
+        if (res.ok) {
+            cerrarBloqueoDirecto()
+            fechaSeleccionada = fecha
+            await cargarCitas()
+        } else {
+            errorEl.textContent = "Error al guardar. Intenta de nuevo."
+            btn.disabled = false
+            btn.textContent = "Guardar bloqueo"
+        }
+    }
+
+    async function eliminarBloqueo(id) {
+        if (!confirm("¿Quitar este bloqueo?")) return
+        const res = await fetch(`/api/bloqueos/${id}`, { method: "DELETE" })
+        if (res.ok) await cargarCitas()
     }
 
     // ── Selección múltiple ──
