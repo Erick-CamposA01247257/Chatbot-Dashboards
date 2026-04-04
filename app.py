@@ -136,6 +136,7 @@ def init_db():
             fecha_hora TEXT NOT NULL
         )
     """)
+    cursor.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS no_show BOOLEAN NOT NULL DEFAULT FALSE")
     conn.commit()
     conn.close()
 
@@ -164,11 +165,19 @@ def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: in
 def obtener_citas():
     conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada FROM citas ORDER BY fecha, hora")
+    cursor.execute("SELECT id, nombre, servicio, fecha, hora, duracion, fecha_registro, telefono, confirmada, no_show FROM citas ORDER BY fecha, hora")
     filas = cursor.fetchall()
+    # Teléfonos con al menos un no-show previo
+    cursor.execute("SELECT DISTINCT telefono FROM citas WHERE no_show = TRUE AND telefono != ''")
+    telefonos_irregulares = {r[0] for r in cursor.fetchall()}
     conn.close()
     return [
-        {"id": f[0], "nombre": f[1], "servicio": f[2], "fecha": f[3], "hora": f[4], "duracion": f[5], "fecha_registro": f[6], "telefono": f[7], "confirmada": f[8]}
+        {
+            "id": f[0], "nombre": f[1], "servicio": f[2], "fecha": f[3], "hora": f[4],
+            "duracion": f[5], "fecha_registro": f[6], "telefono": f[7],
+            "confirmada": f[8], "no_show": f[9],
+            "irregular": f[7] in telefonos_irregulares and f[7] != ""
+        }
         for f in filas
     ]
 
@@ -330,6 +339,39 @@ def enviar_recordatorios():
             f"¿Necesita cancelar o reagendar?\n{base_url}/cancelar/{token}"
         ))
 
+def enviar_recordatorio_irregulares():
+    """Corre a las 7 AM México — manda recordatorio extra a pacientes irregulares con cita hoy."""
+    ahora_mexico = datetime.now() - timedelta(hours=6)
+    hoy = ahora_mexico.strftime("%Y-%m-%d")
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        # Pacientes con cita hoy, confirmada, con teléfono, y que tienen historial de no-show
+        cursor.execute("""
+            SELECT c.nombre, c.servicio, c.fecha, c.hora, c.telefono
+            FROM citas c
+            WHERE c.fecha = %s AND c.confirmada = TRUE AND c.telefono != '' AND c.no_show = FALSE
+              AND EXISTS (
+                SELECT 1 FROM citas prev
+                WHERE prev.telefono = c.telefono AND prev.no_show = TRUE
+              )
+        """, (hoy,))
+        citas = cursor.fetchall()
+        conn.close()
+    except Exception:
+        return
+    for cita in citas:
+        nombre, servicio, fecha, hora, telefono = cita
+        hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
+        enviar_whatsapp(telefono, (
+            f"⚠️ Recordatorio MOSADENT\n\n"
+            f"Hola {nombre}, le recordamos que *hoy* tiene una cita:\n\n"
+            f"⏰ Hora: {hora_leg}\n"
+            f"🦷 Servicio: {servicio}\n\n"
+            f"Por favor confírme su asistencia. Si no puede asistir, avísenos con anticipación.\n"
+            f"Llámenos al 81 1679 8832."
+        ))
+
 def get_token_para(usuario: str, password: str) -> str:
     data = f"{usuario}:{password}:{SESSION_SECRET}"
     return hashlib.sha256(data.encode()).hexdigest()
@@ -362,7 +404,8 @@ def registrar_auditoria(usuario: str, rol: str, accion: str, detalle: str):
 init_db()
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(enviar_recordatorios, "cron", hour=14, minute=0)  # 8 AM México (UTC-6 = 14:00 UTC)
+scheduler.add_job(enviar_recordatorios, "cron", hour=14, minute=0)          # 8 AM México
+scheduler.add_job(enviar_recordatorio_irregulares, "cron", hour=13, minute=0)  # 7 AM México
 scheduler.start()
 
 # ============================================
@@ -572,6 +615,23 @@ async def confirmar_lote(request: Request):
     conn.close()
     return JSONResponse(content={"status": "ok"})
 
+@app.patch("/api/citas/{cita_id}/no-show")
+async def marcar_no_show(cita_id: int, request: Request):
+    rol = verificar_sesion(request)
+    if not rol:
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE citas SET no_show = TRUE WHERE id = %s", (cita_id,))
+    conn.commit()
+    cursor.execute("SELECT nombre, servicio, fecha, hora FROM citas WHERE id = %s", (cita_id,))
+    cita = cursor.fetchone()
+    conn.close()
+    if cita:
+        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
+        registrar_auditoria(usuario, rol, "no_show", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
+    return JSONResponse(content={"status": "ok"})
+
 @app.get("/api/auditoria")
 async def get_auditoria(request: Request):
     rol = verificar_sesion(request)
@@ -586,6 +646,7 @@ async def get_auditoria(request: Request):
         "crear_cita": "Creó cita",
         "confirmar_cita": "Confirmó cita",
         "eliminar_cita": "Eliminó cita",
+        "no_show": "No se presentó",
         "crear_bloqueo": "Bloqueó horario",
         "eliminar_bloqueo": "Quitó bloqueo",
     }

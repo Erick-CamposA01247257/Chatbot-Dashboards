@@ -542,6 +542,38 @@
             cursor: pointer; font-family: 'DM Sans', sans-serif;
         }
 
+        /* ── Irregulares ── */
+        .cita-card.irregular { border-left-color: #F59E0B; }
+        .cita-card.irregular .cita-hora-badge { background: #FFFBEB; color: #B45309; }
+        .badge-irregular {
+            background: #FFFBEB; color: #B45309;
+            border: 1px solid #FDE68A; border-radius: 20px;
+            padding: 2px 8px; font-size: 11px; font-weight: 500;
+        }
+        .grid-bloque.irregular {
+            background: #FFFBEB; border-color: #FDE68A; border-left-color: #F59E0B;
+        }
+        .grid-bloque.irregular .grid-bloque-nombre { color: #B45309; }
+        .grid-bloque.irregular .grid-bloque-detalle { color: #F59E0B; }
+        .cita-card.no-show { border-left-color: #94A3B8; opacity: 0.6; }
+        .alerta-irregular {
+            background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;
+            padding: 10px 12px; margin-bottom: 14px;
+            font-size: 12px; color: #B45309;
+            display: none;
+        }
+        .alerta-irregular.visible { display: block; }
+        .btn-modal-noshow {
+            flex: 1; padding: 11px;
+            background: #F8FAFC; color: #64748B;
+            border: 1px solid var(--borde); border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-modal-noshow:hover { background: #FEF9C3; color: #B45309; border-color: #FDE68A; }
+        .btn-modal-noshow:disabled { opacity: 0.4; cursor: default; }
+
         /* ── Bloqueos ── */
         .cita-card.bloqueado {
             border-left-color: #EF4444;
@@ -708,9 +740,13 @@
             <span class="modal-etiqueta">Estado</span>
             <span id="m-estado"></span>
         </div>
-        <div class="modal-acciones">
+        <div class="alerta-irregular" id="m-alerta-irregular">
+            ⚠️ Este paciente tiene historial de no presentarse a citas anteriores.
+        </div>
+        <div class="modal-acciones" style="flex-wrap:wrap">
             <button class="btn-modal-confirmar" id="btn-modal-confirmar" onclick="confirmarCita()">Confirmar</button>
-            <button class="btn-modal-eliminar" onclick="eliminarCita()">Eliminar</button>
+            <button class="btn-modal-noshow" id="btn-modal-noshow" onclick="marcarNoShow()">No se presentó</button>
+            <button class="btn-modal-eliminar" style="flex:1 1 100%" onclick="eliminarCita()">Eliminar</button>
         </div>
     </div>
 </div>
@@ -943,12 +979,14 @@
                             </div>
                             <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:11px;color:#DC2626;cursor:pointer;flex-shrink:0;margin-left:8px">Quitar</button>
                         </div>`).join("") : ''}
-                    ${citas ? citas.map(c => `
-                        <div class="cita-card ${c.confirmada ? 'confirmada' : ''}" id="card-${c.id}">
+                    ${citas ? citas.map(c => {
+                        const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
+                        return `
+                        <div class="cita-card ${clase}" id="card-${c.id}">
                             <div class="cita-card-header" style="display:flex;align-items:center">
-                                ${!c.confirmada ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
+                                ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
                                 <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                    <div class="cita-paciente">${escaparHTML(c.nombre)}</div>
+                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
                                     <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
                                 </div>
                             </div>
@@ -957,7 +995,7 @@
                                 <div class="cita-detalle-sep"></div>
                                 <span>${c.duracion} min</span>
                             </div>
-                        </div>`).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
+                        </div>`}).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
                 </div>`
             timeline.appendChild(slot)
         }
@@ -1025,7 +1063,8 @@
             const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
             const bloque = document.createElement("div")
-            bloque.className = `grid-bloque ${cita.confirmada ? 'confirmado' : ''}`
+            const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
+            bloque.className = `grid-bloque ${claseGrid}`
             bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
@@ -1195,14 +1234,30 @@
 
         const estadoEl = document.getElementById("m-estado")
         const btnConfirmar = document.getElementById("btn-modal-confirmar")
-        if (citaModal.confirmada) {
+        const btnNoShow = document.getElementById("btn-modal-noshow")
+        const alertaIrregular = document.getElementById("m-alerta-irregular")
+
+        if (citaModal.no_show) {
+            estadoEl.innerHTML = `<span style="background:#F1F5F9;color:#64748B;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">No se presentó</span>`
+            btnConfirmar.disabled = true
+            btnConfirmar.textContent = "Ya registrada"
+            btnNoShow.disabled = true
+        } else if (citaModal.confirmada) {
             estadoEl.innerHTML = `<span class="modal-badge-confirmada">Confirmada</span>`
             btnConfirmar.disabled = true
             btnConfirmar.textContent = "Ya confirmada"
+            btnNoShow.disabled = false
         } else {
             estadoEl.innerHTML = `<span class="modal-badge-pendiente">Pendiente</span>`
             btnConfirmar.disabled = false
             btnConfirmar.textContent = "Confirmar"
+            btnNoShow.disabled = false
+        }
+
+        if (citaModal.irregular) {
+            alertaIrregular.classList.add("visible")
+        } else {
+            alertaIrregular.classList.remove("visible")
         }
 
         document.getElementById("modal-overlay").classList.add("visible")
@@ -1220,6 +1275,16 @@
     async function confirmarCita() {
         if (!citaModal) return
         const res = await fetch(`/api/citas/${citaModal.id}/confirmar`, { method: "PATCH" })
+        if (res.ok) {
+            cerrarModalDirecto()
+            await cargarCitas()
+        }
+    }
+
+    async function marcarNoShow() {
+        if (!citaModal) return
+        if (!confirm(`¿Marcar a ${citaModal.nombre} como "No se presentó"?`)) return
+        const res = await fetch(`/api/citas/${citaModal.id}/no-show`, { method: "PATCH" })
         if (res.ok) {
             cerrarModalDirecto()
             await cargarCitas()
