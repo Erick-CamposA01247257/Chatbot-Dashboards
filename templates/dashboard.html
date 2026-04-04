@@ -603,7 +603,15 @@
             .header-fecha { display: none; }
             .logo-nombre { display: none; }
             .badge-citas { display: none; }
-            .btn-nueva-cita { padding: 6px 10px; font-size: 11px; }
+            .btn-auditoria { display: none !important; }
+            .btn-bloquear-header { display: none; }
+            .btn-bloquear-movil { display: block !important; }
+            .toggle-label { display: none; }
+            .toggle-wrap { gap: 4px; }
+
+            /* Botones más compactos */
+            .btn-nueva-cita { padding: 6px 8px; font-size: 11px; }
+            .header-right { gap: 5px; }
 
             .tabs-movil { display: flex; }
 
@@ -645,7 +653,7 @@
             <div class="toggle-track"><div class="toggle-thumb"></div></div>
             <span class="toggle-label">Auto</span>
         </label>
-        <button class="btn-nueva-cita" style="background:var(--bg);color:var(--texto-mid);border:1px solid var(--borde)" onclick="abrirBloqueo()">🚫 Bloquear</button>
+        <button class="btn-nueva-cita btn-bloquear-header" style="background:var(--bg);color:var(--texto-mid);border:1px solid var(--borde)" onclick="abrirBloqueo()">🚫 Bloquear</button>
         <button class="btn-nueva-cita" onclick="abrirNuevaCita()">+ Nueva cita</button>
     </div>
 </div>
@@ -805,9 +813,12 @@
 <div class="main">
 
     <div class="panel-agenda" id="panel-agenda">
-        <div class="panel-header">
-            <div class="panel-label">Agenda del día</div>
-            <div class="panel-subtitulo" id="agenda-subtitulo"></div>
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <div class="panel-label">Agenda del día</div>
+                <div class="panel-subtitulo" id="agenda-subtitulo"></div>
+            </div>
+            <button class="btn-nueva-cita btn-bloquear-movil" style="background:var(--bg);color:var(--texto-mid);border:1px solid var(--borde);display:none" onclick="abrirBloqueo()">🚫 Bloquear</button>
         </div>
         <div class="agenda-scroll">
             <div class="timeline" id="timeline"></div>
