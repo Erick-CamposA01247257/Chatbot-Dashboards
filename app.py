@@ -491,6 +491,10 @@ class LoginRequest(BaseModel):
 # SALIDA — Endpoints públicos
 # ============================================
 
+@app.head("/")
+async def health_head():
+    return Response()
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     with open("templates/index.html", "r", encoding="utf-8") as f:
