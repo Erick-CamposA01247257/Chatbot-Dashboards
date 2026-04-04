@@ -12,7 +12,9 @@ import hashlib
 import secrets
 import csv
 import io
+import re
 import smtplib
+from html import escape as html_escape
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -27,6 +29,15 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER") or ""
 GMAIL_USER = os.environ.get("GMAIL_USER") or ""
@@ -477,11 +488,31 @@ class Mensaje(BaseModel):
     session_id: str = Field("default", max_length=100)
 
 class CitaRequest(BaseModel):
-    nombre: str = Field(..., max_length=100)
+    nombre: str = Field(..., max_length=100, min_length=2)
     servicio: str = Field(..., max_length=100)
     fecha: str = Field(..., max_length=10)
     hora: str = Field(..., max_length=5)
-    telefono: str = Field("", max_length=20)
+    telefono: str = Field("", max_length=10)
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    def __init__(self, **data):
+        # Sanitizar newlines de campos de texto libre
+        if "nombre" in data:
+            data["nombre"] = re.sub(r"[\r\n\t]", " ", data["nombre"]).strip()
+        if "servicio" in data:
+            data["servicio"] = re.sub(r"[\r\n\t]", " ", data["servicio"]).strip()
+        super().__init__(**data)
+        # Validar formato fecha YYYY-MM-DD
+        try:
+            datetime.strptime(self.fecha, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("Formato de fecha inválido (use YYYY-MM-DD)")
+        # Validar formato hora HH:MM
+        if not re.match(r'^([01][0-9]|2[0-3]):[0-5][0-9]$', self.hora):
+            raise ValueError("Formato de hora inválido (use HH:MM)")
 
 class LoginRequest(BaseModel):
     usuario: str = Field(..., max_length=50)
@@ -512,12 +543,12 @@ async def api_login(request: Request, datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         token = get_token_para(DASHBOARD_USER, DASHBOARD_PASSWORD)
         resp = JSONResponse(content={"status": "ok", "rol": "doctor"})
-        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="lax")
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="strict", secure=True)
         return resp
     if ASSISTANT_USER and datos.usuario == ASSISTANT_USER and datos.password == ASSISTANT_PASSWORD:
         token = get_token_para(ASSISTANT_USER, ASSISTANT_PASSWORD)
         resp = JSONResponse(content={"status": "ok", "rol": "asistente"})
-        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="lax")
+        resp.set_cookie(key="session_token", value=token, httponly=True, max_age=43200, samesite="strict", secure=True)
         return resp
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
@@ -566,7 +597,8 @@ async def api_slots(fecha: str, servicio: str):
     return JSONResponse(content={"fecha": fecha, "servicio": servicio, "duracion": duracion, "slots": slots})
 
 @app.post("/api/agendar")
-async def api_agendar(cita: CitaRequest):
+@limiter.limit("10/hour")
+async def api_agendar(request: Request, cita: CitaRequest):
     duracion = get_duracion(cita.servicio)
     slots = calcular_slots(cita.fecha, duracion)
     if cita.hora not in slots:
@@ -795,13 +827,14 @@ async def cancelar_page(token: str):
     hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
     with open("templates/cancelar.html", "r", encoding="utf-8") as f:
         html = f.read()
-    html = html.replace("{{nombre}}", nombre).replace("{{servicio}}", servicio)
-    html = html.replace("{{fecha}}", fecha_leg).replace("{{hora}}", hora_leg)
-    html = html.replace("{{token}}", token)
+    html = html.replace("{{nombre}}", html_escape(nombre)).replace("{{servicio}}", html_escape(servicio))
+    html = html.replace("{{fecha}}", html_escape(fecha_leg)).replace("{{hora}}", html_escape(hora_leg))
+    html = html.replace("{{token}}", html_escape(token))
     return html
 
 @app.post("/api/cancelar/{token}")
-async def api_cancelar(token: str):
+@limiter.limit("5/minute")
+async def api_cancelar(token: str, request: Request):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM citas WHERE cancelacion_token = %s", (token,))
