@@ -440,6 +440,35 @@
         }
         .btn-nueva-cita:hover { background: var(--azul-dark); }
 
+        /* ── Historial paciente ── */
+        .historial-seccion {
+            margin-top: 16px;
+            border-top: 1px solid var(--borde);
+            padding-top: 14px;
+        }
+        .historial-titulo {
+            font-size: 11px; font-weight: 600;
+            color: var(--texto-muted); text-transform: uppercase;
+            letter-spacing: 0.6px; margin-bottom: 10px;
+        }
+        .historial-item {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 7px 0;
+            border-bottom: 1px solid var(--borde);
+            font-size: 12px;
+        }
+        .historial-item:last-child { border-bottom: none; }
+        .historial-fecha { color: var(--texto-muted); flex-shrink: 0; margin-right: 10px; }
+        .historial-servicio { color: var(--texto); flex: 1; }
+        .historial-badge {
+            font-size: 10px; border-radius: 20px;
+            padding: 2px 7px; flex-shrink: 0; margin-left: 6px;
+        }
+        .historial-vacio {
+            font-size: 12px; color: var(--texto-muted);
+            font-style: italic; padding: 4px 0;
+        }
+
         /* ── Auditoría ── */
         .btn-auditoria {
             width: 30px; height: 30px;
@@ -751,6 +780,7 @@
         <div class="alerta-irregular" id="m-alerta-irregular">
             ⚠️ Este paciente tiene historial de no presentarse a citas anteriores.
         </div>
+        <div class="historial-seccion" id="m-historial"></div>
         <div class="modal-acciones" style="flex-wrap:wrap">
             <button class="btn-modal-confirmar" id="btn-modal-confirmar" onclick="confirmarCita()">Confirmar</button>
             <button class="btn-modal-noshow" id="btn-modal-noshow" onclick="marcarNoShow()">No se presentó</button>
@@ -1269,6 +1299,39 @@
             alertaIrregular.classList.add("visible")
         } else {
             alertaIrregular.classList.remove("visible")
+        }
+
+        // Historial del paciente
+        const historialEl = document.getElementById("m-historial")
+        if (citaModal.telefono) {
+            const historial = todasLasCitas
+                .filter(c => c.telefono === citaModal.telefono && c.id !== citaModal.id)
+                .sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora))
+
+            if (historial.length > 0) {
+                historialEl.innerHTML = `
+                    <div class="historial-titulo">Historial del paciente</div>
+                    ${historial.map(c => {
+                        const fecha = new Date(c.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
+                        const badgeHtml = c.no_show
+                            ? `<span class="historial-badge" style="background:#F1F5F9;color:#64748B">No asistió</span>`
+                            : c.confirmada
+                            ? `<span class="historial-badge" style="background:#F0FDF4;color:#15803D">Asistió</span>`
+                            : `<span class="historial-badge" style="background:#FEF9C3;color:#854D0E">Pendiente</span>`
+                        return `
+                            <div class="historial-item">
+                                <span class="historial-fecha">${fecha}</span>
+                                <span class="historial-servicio">${escaparHTML(c.servicio)}</span>
+                                ${badgeHtml}
+                            </div>`
+                    }).join("")}`
+            } else {
+                historialEl.innerHTML = `
+                    <div class="historial-titulo">Historial del paciente</div>
+                    <div class="historial-vacio">Primera cita de este paciente.</div>`
+            }
+        } else {
+            historialEl.innerHTML = ""
         }
 
         document.getElementById("modal-overlay").classList.add("visible")
