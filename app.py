@@ -24,6 +24,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER") or ""
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD") or ""
 SESSION_SECRET = os.environ.get("SESSION_SECRET") or ""
+DOCTOR_PHONE = os.environ.get("DOCTOR_PHONE") or ""
 
 DURACIONES = {
     "limpieza": 30, "limpieza dental": 30,
@@ -226,6 +227,19 @@ def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fech
         f"¿Necesita cancelar o reagendar? Entre aquí:\n{base_url}/cancelar/{token}"
     ))
 
+def notificar_doctora(nombre: str, servicio: str, fecha: str, hora: str):
+    if not DOCTOR_PHONE:
+        return
+    fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
+    hora_leg = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
+    enviar_whatsapp(DOCTOR_PHONE, (
+        f"📅 Nueva cita agendada\n\n"
+        f"👤 Paciente: {nombre}\n"
+        f"🦷 Servicio: {servicio}\n"
+        f"📆 Fecha: {fecha_leg}\n"
+        f"⏰ Hora: {hora_leg}"
+    ))
+
 def enviar_recordatorios():
     ahora_mexico = datetime.now() - timedelta(hours=6)
     manana = (ahora_mexico + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -366,6 +380,7 @@ async def api_agendar(cita: CitaRequest):
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono)
+    notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.post("/api/agendar-dashboard")
@@ -380,6 +395,7 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request):
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
+    notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.patch("/api/citas/{cita_id}/confirmar")
