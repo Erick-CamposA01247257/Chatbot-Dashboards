@@ -1304,8 +1304,9 @@
         // Historial del paciente
         const historialEl = document.getElementById("m-historial")
         if (citaModal.telefono) {
+            const citaActualKey = citaModal.fecha + citaModal.hora
             const historial = todasLasCitas
-                .filter(c => c.telefono === citaModal.telefono && c.id !== citaModal.id)
+                .filter(c => c.telefono === citaModal.telefono && c.id !== citaModal.id && (c.fecha + c.hora) < citaActualKey)
                 .sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora))
 
             if (historial.length > 0) {
