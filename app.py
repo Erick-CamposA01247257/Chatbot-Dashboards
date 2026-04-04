@@ -202,8 +202,8 @@ def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fech
             to=f"whatsapp:+521{telefono}",
             body=f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n📅 Fecha: {fecha_leg}\n⏰ Hora: {hora_leg}\n🦷 Servicio: {servicio}\n\nLe esperamos en Paseo de las Américas 2213, Guadalupe N.L. Cualquier duda llámenos al 81 1679 8832."
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[Twilio Error] {e}")
 
 def get_token_valido():
     data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
