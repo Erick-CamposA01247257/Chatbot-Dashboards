@@ -193,7 +193,6 @@ def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fech
         api_secret = os.environ.get("TWILIO_API_SECRET")
         from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
         if not all([account_sid, api_key, api_secret, from_number, telefono]):
-            print("[Twilio] Faltan variables de entorno")
             return
         fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
         hora_dt = datetime.strptime(hora, "%H:%M")
@@ -204,8 +203,8 @@ def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fech
             to=f"whatsapp:+521{telefono}",
             body=f"✅ Hola {nombre}, su cita en MOSADENT ha sido *confirmada*.\n\n📅 Fecha: {fecha_leg}\n⏰ Hora: {hora_leg}\n🦷 Servicio: {servicio}\n\nLe esperamos en Paseo de las Américas 2213, Guadalupe N.L. Cualquier duda llámenos al 81 1679 8832."
         )
-    except Exception as e:
-        print(f"[Twilio Error] tipo={type(e).__name__} | {repr(e)}")
+    except Exception:
+        pass
 
 def get_token_valido():
     data = f"{DASHBOARD_USER}:{DASHBOARD_PASSWORD}:{SESSION_SECRET}"
