@@ -524,7 +524,7 @@ class LoginRequest(BaseModel):
 
 @app.head("/")
 async def health_head():
-    return Response(status_code=500)
+    return Response()
 
 
 @app.get("/", response_class=HTMLResponse)
