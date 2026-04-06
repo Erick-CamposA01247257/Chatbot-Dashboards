@@ -476,8 +476,13 @@ scheduler.start()
 # ============================================
 
 class Mensaje(BaseModel):
-    texto: str = Field(..., max_length=1000)
+    texto: str = Field(..., min_length=1, max_length=1000)
     session_id: str = Field("default", max_length=100)
+
+    def __init__(self, **data):
+        if "session_id" in data:
+            data["session_id"] = re.sub(r"[^a-zA-Z0-9_-]", "", str(data["session_id"]))[:100] or "default"
+        super().__init__(**data)
 
 class CitaRequest(BaseModel):
     nombre: str = Field(..., max_length=100, min_length=2)
@@ -491,24 +496,33 @@ class CitaRequest(BaseModel):
         yield cls.validate
 
     def __init__(self, **data):
-        # Sanitizar newlines de campos de texto libre
         if "nombre" in data:
             data["nombre"] = re.sub(r"[\r\n\t]", " ", data["nombre"]).strip()
         if "servicio" in data:
             data["servicio"] = re.sub(r"[\r\n\t]", " ", data["servicio"]).strip()
+        if "telefono" in data and data["telefono"]:
+            data["telefono"] = re.sub(r"\D", "", str(data["telefono"]))
         super().__init__(**data)
-        # Validar formato fecha YYYY-MM-DD
+        # Validar formato fecha YYYY-MM-DD y que no sea pasada
         try:
-            datetime.strptime(self.fecha, "%Y-%m-%d")
+            fecha_dt = datetime.strptime(self.fecha, "%Y-%m-%d").date()
         except ValueError:
             raise ValueError("Formato de fecha inválido (use YYYY-MM-DD)")
-        # Validar formato hora HH:MM
+        if fecha_dt < date.today():
+            raise ValueError("No se pueden agendar citas en fechas pasadas")
+        # Validar formato hora HH:MM y rango válido
         if not re.match(r'^([01][0-9]|2[0-3]):[0-5][0-9]$', self.hora):
             raise ValueError("Formato de hora inválido (use HH:MM)")
+        hora_int = int(self.hora.split(":")[0])
+        if hora_int < 10 or hora_int >= 19:
+            raise ValueError("Hora fuera del horario de atención (10:00-19:00)")
+        # Validar teléfono: exactamente 10 dígitos si se proporciona
+        if self.telefono and not re.match(r'^\d{10}$', self.telefono):
+            raise ValueError("Teléfono debe tener exactamente 10 dígitos")
 
 class LoginRequest(BaseModel):
-    usuario: str = Field(..., max_length=50)
-    password: str = Field(..., max_length=100)
+    usuario: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=100)
 
 # ============================================
 # SALIDA — Endpoints públicos
@@ -584,6 +598,14 @@ async def api_citas(request: Request):
 
 @app.get("/api/slots")
 async def api_slots(fecha: str, servicio: str):
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha):
+        return JSONResponse(status_code=400, content={"error": "Formato de fecha inválido"})
+    try:
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Fecha inválida"})
+    if len(servicio) > 100:
+        return JSONResponse(status_code=400, content={"error": "Servicio inválido"})
     duracion = get_duracion(servicio)
     slots = calcular_slots(fecha, duracion)
     return JSONResponse(content={"fecha": fecha, "servicio": servicio, "duracion": duracion, "slots": slots})
@@ -689,6 +711,9 @@ async def confirmar_lote(request: Request, background_tasks: BackgroundTasks):
     ids = body.get("ids", [])
     if not ids:
         return JSONResponse(content={"status": "ok"})
+    if not isinstance(ids, list) or len(ids) > 100:
+        return JSONResponse(status_code=400, content={"error": "IDs inválidos"})
+    ids = [int(i) for i in ids if isinstance(i, int) and i > 0]
     conn = get_conn()
     cursor = conn.cursor()
     usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
@@ -766,13 +791,25 @@ async def crear_bloqueo(request: Request):
     if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     body = await request.json()
-    fecha = body.get("fecha", "")
-    todo_el_dia = body.get("todo_el_dia", False)
-    hora_inicio = None if todo_el_dia else body.get("hora_inicio")
-    hora_fin = None if todo_el_dia else body.get("hora_fin")
-    motivo = body.get("motivo", "")
-    if not fecha:
-        return JSONResponse(status_code=400, content={"error": "Fecha requerida"})
+    fecha = str(body.get("fecha", ""))[:10]
+    todo_el_dia = bool(body.get("todo_el_dia", False))
+    motivo = re.sub(r"[\r\n\t]", " ", str(body.get("motivo", "") or "")).strip()[:200]
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha):
+        return JSONResponse(status_code=400, content={"error": "Formato de fecha inválido"})
+    try:
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Fecha inválida"})
+    hora_inicio = None
+    hora_fin = None
+    if not todo_el_dia:
+        hora_inicio = str(body.get("hora_inicio", "") or "")[:5]
+        hora_fin = str(body.get("hora_fin", "") or "")[:5]
+        if not re.match(r'^([01][0-9]|2[0-3]):[0-5][0-9]$', hora_inicio) or \
+           not re.match(r'^([01][0-9]|2[0-3]):[0-5][0-9]$', hora_fin):
+            return JSONResponse(status_code=400, content={"error": "Formato de hora inválido"})
+        if hora_inicio >= hora_fin:
+            return JSONResponse(status_code=400, content={"error": "hora_fin debe ser mayor que hora_inicio"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute(
@@ -807,6 +844,8 @@ async def eliminar_bloqueo(bloqueo_id: int, request: Request):
 
 @app.get("/cancelar/{token}", response_class=HTMLResponse)
 async def cancelar_page(token: str):
+    if not re.match(r'^[a-zA-Z0-9_-]{10,100}$', token):
+        return HTMLResponse("<h2 style='font-family:sans-serif;padding:40px'>Link no válido.</h2>")
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT nombre, servicio, fecha, hora FROM citas WHERE cancelacion_token = %s", (token,))
@@ -827,6 +866,8 @@ async def cancelar_page(token: str):
 @app.post("/api/cancelar/{token}")
 @limiter.limit("5/minute")
 async def api_cancelar(token: str, request: Request):
+    if not re.match(r'^[a-zA-Z0-9_-]{10,100}$', token):
+        return JSONResponse(status_code=400, content={"error": "Token inválido"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM citas WHERE cancelacion_token = %s", (token,))
