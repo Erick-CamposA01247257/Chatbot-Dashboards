@@ -1349,10 +1349,16 @@
 
     async function confirmarCita() {
         if (!citaModal) return
+        const btn = document.getElementById("btn-modal-confirmar")
+        btn.disabled = true
+        btn.textContent = "Confirmando..."
         const res = await fetch(`/api/citas/${citaModal.id}/confirmar`, { method: "PATCH" })
         if (res.ok) {
             cerrarModalDirecto()
             await cargarCitas()
+        } else {
+            btn.disabled = false
+            btn.textContent = "Confirmar"
         }
     }
 
