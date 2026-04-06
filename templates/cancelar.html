@@ -256,26 +256,9 @@
         if (confirmar) reagendar();
     }
 
-    async function reagendar() {
-        const btn = document.querySelector('.btn-reagendar');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Procesando...';
-
-        try {
-            const res = await fetch(`/api/cancelar/${TOKEN}`, { method: 'POST' });
-            if (res.ok || res.status === 404) {
-                // Si ya no existe la cita o se canceló exitosamente, redirigir al chat
-                window.location.href = '/';
-            } else {
-                btn.disabled = false;
-                btn.textContent = 'Reagendar cita';
-                alert('Hubo un error, intenta de nuevo.');
-            }
-        } catch {
-            btn.disabled = false;
-            btn.textContent = 'Reagendar cita';
-            alert('Error de conexión, intenta de nuevo.');
-        }
+    function reagendar() {
+        fetch(`/api/cancelar/${TOKEN}`, { method: 'POST' }).catch(() => {});
+        window.location.href = '/';
     }
 
     function mostrarEstado(tipo) {
