@@ -7,6 +7,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import anthropic
 import psycopg2
+import requests
 import os
 import hashlib
 import secrets
@@ -279,27 +280,19 @@ def calcular_slots(fecha: str, duracion: int):
 # PROCESO — Auth determinístico
 # ============================================
 
-def get_twilio_client():
-    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-    api_key = os.environ.get("TWILIO_API_KEY")
-    api_secret = os.environ.get("TWILIO_API_SECRET")
-    from_number = os.environ.get("TWILIO_WHATSAPP_FROM")
-    if not all([account_sid, api_key, api_secret, from_number]):
-        return None, None
-    return TwilioClient(api_key, api_secret, account_sid), from_number
-
 def enviar_whatsapp(telefono: str, mensaje: str):
     try:
-        cliente, from_number = get_twilio_client()
-        if not cliente or not telefono:
+        token = os.environ.get("WHAPI_TOKEN")
+        if not token or not telefono:
             return
-        cliente.messages.create(
-            from_=from_number,
-            to=f"whatsapp:+521{telefono}",
-            body=mensaje
+        requests.post(
+            "https://gate.whapi.cloud/messages/text",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={"to": f"521{telefono}@s.whatsapp.net", "body": mensaje},
+            timeout=10
         )
     except Exception as e:
-        print(f"[TWILIO ERROR] {e}")
+        print(f"[WHAPI ERROR] {e}")
 
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
     fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
