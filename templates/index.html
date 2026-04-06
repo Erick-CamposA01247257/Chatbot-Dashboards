@@ -866,6 +866,7 @@ function irPaso(paso) {
     if (paso <= 2) estado.hora = null
     if (paso <= 1) estado.servicio = null
     renderWizard()
+    if (paso === 3 && estado.fecha && estado.servicio) cargarSlots()
 }
 
 function elegirFecha(fecha) {
