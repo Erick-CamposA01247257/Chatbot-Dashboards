@@ -298,8 +298,8 @@ def enviar_whatsapp(telefono: str, mensaje: str):
             to=f"whatsapp:+521{telefono}",
             body=mensaje
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[TWILIO ERROR] {e}")
 
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
     fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
