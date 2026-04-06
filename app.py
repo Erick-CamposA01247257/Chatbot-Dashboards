@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -590,7 +590,7 @@ async def api_slots(fecha: str, servicio: str):
 
 @app.post("/api/agendar")
 @limiter.limit("10/hour")
-async def api_agendar(request: Request, cita: CitaRequest):
+async def api_agendar(request: Request, cita: CitaRequest, background_tasks: BackgroundTasks):
     duracion = get_duracion(cita.servicio)
     slots = calcular_slots(cita.fecha, duracion)
     if cita.hora not in slots:
@@ -600,11 +600,11 @@ async def api_agendar(request: Request, cita: CitaRequest):
         )
     auto = get_auto_confirmar()
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=auto)
-    notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
+    background_tasks.add_task(notificar_doctora, cita.nombre, cita.servicio, cita.fecha, cita.hora)
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.post("/api/agendar-dashboard")
-async def api_agendar_dashboard(cita: CitaRequest, request: Request):
+async def api_agendar_dashboard(cita: CitaRequest, request: Request, background_tasks: BackgroundTasks):
     rol = verificar_sesion(request)
     if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
@@ -616,13 +616,13 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request):
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
     guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
-    notificar_doctora(cita.nombre, cita.servicio, cita.fecha, cita.hora)
+    background_tasks.add_task(notificar_doctora, cita.nombre, cita.servicio, cita.fecha, cita.hora)
     usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
     registrar_auditoria(usuario, rol, "crear_cita", f"{cita.nombre} — {cita.servicio} — {cita.fecha} {cita.hora}")
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.patch("/api/citas/{cita_id}/confirmar")
-async def confirmar_cita(cita_id: int, request: Request):
+async def confirmar_cita(cita_id: int, request: Request, background_tasks: BackgroundTasks):
     rol = verificar_sesion(request)
     if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
@@ -635,7 +635,7 @@ async def confirmar_cita(cita_id: int, request: Request):
     conn.close()
     if cita:
         if cita[4]:
-            enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+            background_tasks.add_task(enviar_whatsapp_confirmacion, cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
         usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
         registrar_auditoria(usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     return JSONResponse(content={"status": "ok"})
@@ -681,7 +681,7 @@ async def set_config(request: Request):
     return JSONResponse(content={"status": "ok"})
 
 @app.post("/api/citas/confirmar-lote")
-async def confirmar_lote(request: Request):
+async def confirmar_lote(request: Request, background_tasks: BackgroundTasks):
     rol = verificar_sesion(request)
     if not rol:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
@@ -698,7 +698,7 @@ async def confirmar_lote(request: Request):
         cita = cursor.fetchone()
         if cita:
             if cita[4]:
-                enviar_whatsapp_confirmacion(cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
+                background_tasks.add_task(enviar_whatsapp_confirmacion, cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
             registrar_auditoria(usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     conn.commit()
     conn.close()
