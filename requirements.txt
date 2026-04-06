@@ -4,5 +4,5 @@ anthropic>=0.86.0,<1.0
 python-dotenv>=1.2.0,<2.0
 psycopg2-binary>=2.9.11,<3.0
 slowapi>=0.1.9,<1.0
-twilio>=9.0.0,<10.0
+requests>=2.32.0,<3.0
 apscheduler>=3.10.0,<4.0

@@ -21,7 +21,6 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import date, datetime, timedelta
-from twilio.rest import Client as TwilioClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 load_dotenv()
