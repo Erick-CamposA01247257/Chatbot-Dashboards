@@ -203,7 +203,7 @@
         </div>
 
         <div class="acciones">
-            <button class="btn btn-reagendar" onclick="reagendar()">
+            <button class="btn btn-reagendar" onclick="confirmarReagendar()">
                 Reagendar cita
             </button>
             <button class="btn btn-cancelar" onclick="cancelar()">
@@ -249,6 +249,11 @@
             btn.textContent = 'Cancelar cita';
             alert('Error de conexión, intenta de nuevo.');
         }
+    }
+
+    function confirmarReagendar() {
+        const confirmar = confirm("Tu cita actual será cancelada y serás redirigido para agendar una nueva. ¿Deseas continuar?");
+        if (confirmar) reagendar();
     }
 
     async function reagendar() {
