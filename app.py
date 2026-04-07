@@ -656,10 +656,10 @@ async def confirmar_cita(cita_id: int, request: Request, background_tasks: Backg
     cita = cursor.fetchone()
     conn.close()
     if cita:
+        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
         if cita[4]:
             background_tasks.add_task(enviar_whatsapp_confirmacion, cita[4], cita[0], cita[1], cita[2], cita[3], cita[5] or "")
-        usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
-        registrar_auditoria(usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
+        background_tasks.add_task(registrar_auditoria, usuario, rol, "confirmar_cita", f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     return JSONResponse(content={"status": "ok"})
 
 @app.delete("/api/citas/{cita_id}")

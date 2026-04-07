@@ -1354,8 +1354,11 @@
         btn.textContent = "Confirmando..."
         const res = await fetch(`/api/citas/${citaModal.id}/confirmar`, { method: "PATCH" })
         if (res.ok) {
+            const cita = todasLasCitas.find(c => c.id === citaModal.id)
+            if (cita) cita.confirmada = true
             cerrarModalDirecto()
-            await cargarCitas()
+            render()
+            cargarCitas()
         } else {
             btn.disabled = false
             btn.textContent = "Confirmar"
