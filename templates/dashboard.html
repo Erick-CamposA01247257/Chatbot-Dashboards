@@ -603,6 +603,22 @@
         .btn-modal-noshow:hover { background: #FEF9C3; color: #B45309; border-color: #FDE68A; }
         .btn-modal-noshow:disabled { opacity: 0.4; cursor: default; }
 
+        /* ── Badge doctor ── */
+        .badge-doctor {
+            display: inline-flex; align-items: center;
+            border-radius: 20px; padding: 2px 8px;
+            font-size: 10px; font-weight: 600; margin-left: 6px;
+            flex-shrink: 0;
+        }
+
+        .filtro-doctor-select {
+            height: 30px; padding: 0 8px;
+            border: 1px solid var(--borde); border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: 12px;
+            color: var(--texto-mid); background: var(--surface);
+            cursor: pointer; outline: none; flex-shrink: 0;
+        }
+
         /* ── Bloqueos ── */
         .cita-card.bloqueado {
             border-left-color: #EF4444;
@@ -676,6 +692,9 @@
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
+        <select id="filtro-doctor" class="filtro-doctor-select" onchange="render()" style="display:none">
+            <option value="">Todos los doctores</option>
+        </select>
         <button class="btn-auditoria" id="btn-auditoria" onclick="abrirAuditoria()" title="Ver auditoría" style="display:none">🔍</button>
         <label class="toggle-wrap" title="Confirmar citas automáticamente al agendar">
             <input type="checkbox" id="toggle-autoconfirmar" onchange="cambiarAutoConfirmar(this.checked)">
@@ -772,6 +791,10 @@
         <div class="modal-fila">
             <span class="modal-etiqueta">Duración</span>
             <span class="modal-valor" id="m-duracion"></span>
+        </div>
+        <div class="modal-fila" id="m-doctor-fila">
+            <span class="modal-etiqueta">Doctor</span>
+            <span class="modal-valor" id="m-doctor"></span>
         </div>
         <div class="modal-fila">
             <span class="modal-etiqueta">Estado</span>
@@ -895,6 +918,9 @@
 
     let rolActual = null
     let usuarioActual = null
+    let doctorIdActual = null
+    let doctorNombreActual = null
+    let doctoresMap = {}   // id → {nombre, color}
     let todasLasCitas = []
     let todosLosBloqueos = []
     let fechaSeleccionada = new Date().toISOString().split("T")[0]
@@ -959,8 +985,16 @@
         document.getElementById("agenda-subtitulo").textContent = diaStr.charAt(0).toUpperCase() + diaStr.slice(1)
     }
 
+    function getCitasFiltradas() {
+        const filtroId = document.getElementById("filtro-doctor")?.value
+        return todasLasCitas.filter(c => {
+            if (filtroId && String(c.doctor_id) !== String(filtroId)) return false
+            return true
+        })
+    }
+
     function renderTimeline() {
-        const citasDelDia = todasLasCitas
+        const citasDelDia = getCitasFiltradas()
             .filter(c => c.fecha === fechaSeleccionada)
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
@@ -1022,12 +1056,15 @@
                         </div>`).join("") : ''}
                     ${citas ? citas.map(c => {
                         const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
+                        const docBadge = (rolActual === 'admin' || rolActual === 'asistente') && c.doctor_nombre
+                            ? `<span class="badge-doctor" style="background:${c.doctor_color}20;color:${c.doctor_color};border:1px solid ${c.doctor_color}40">${escaparHTML(c.doctor_nombre)}</span>`
+                            : ''
                         return `
                         <div class="cita-card ${clase}" id="card-${c.id}">
                             <div class="cita-card-header" style="display:flex;align-items:center">
                                 ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
                                 <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
+                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}${docBadge}</div>
                                     <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
                                 </div>
                             </div>
@@ -1059,7 +1096,7 @@
 
         const primerDia = new Date(calAño, calMes, 1).getDay()
         const totalDias = new Date(calAño, calMes + 1, 0).getDate()
-        const fechasConCitas = new Set(todasLasCitas.map(c => c.fecha))
+        const fechasConCitas = new Set(getCitasFiltradas().map(c => c.fecha))
         const fechasConBloqueo = new Set(todosLosBloqueos.map(b => b.fecha))
 
         for (let i = 0; i < primerDia; i++) grid.innerHTML += `<div></div>`
@@ -1081,7 +1118,7 @@
     }
 
     function renderGridVisual() {
-        const citasDelDia = todasLasCitas.filter(c => c.fecha === fechaSeleccionada)
+        const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
         const grid = document.getElementById("grid-visual")
         grid.innerHTML = ""
 
@@ -1106,11 +1143,17 @@
             const bloque = document.createElement("div")
             const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
             bloque.className = `grid-bloque ${claseGrid}`
-            bloque.style.cssText = `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
+            const dc = cita.doctor_color || '#1E66B5'
+            if (!claseGrid) {
+                bloque.style.background = dc + '18'
+                bloque.style.borderColor = dc + '50'
+                bloque.style.borderLeftColor = dc
+            }
+            bloque.style.cssText += `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
-                <div class="grid-bloque-nombre">${escaparHTML(cita.nombre)}</div>
-                <div class="grid-bloque-detalle">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
+                <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+dc : ''}">${escaparHTML(cita.nombre)}</div>
+                <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+dc+'cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
         })
 
@@ -1272,6 +1315,16 @@
         document.getElementById("m-fecha").textContent = fechaLeg.charAt(0).toUpperCase() + fechaLeg.slice(1)
         document.getElementById("m-hora").textContent = convertir12h(citaModal.hora)
         document.getElementById("m-duracion").textContent = `${citaModal.duracion} min`
+
+        const mDocFila = document.getElementById("m-doctor-fila")
+        const mDoc = document.getElementById("m-doctor")
+        if (citaModal.doctor_nombre) {
+            mDocFila.style.display = ""
+            const dc = citaModal.doctor_color || '#1E66B5'
+            mDoc.innerHTML = `<span class="badge-doctor" style="background:${dc}20;color:${dc};border:1px solid ${dc}40">${escaparHTML(citaModal.doctor_nombre)}</span>`
+        } else {
+            mDocFila.style.display = "none"
+        }
 
         const estadoEl = document.getElementById("m-estado")
         const btnConfirmar = document.getElementById("btn-modal-confirmar")
@@ -1567,7 +1620,9 @@
     // ── Auto-confirmar ──
     async function cargarConfig() {
         try {
-            const [resConfig, resMe] = await Promise.all([fetch("/api/config"), fetch("/api/me")])
+            const [resConfig, resMe, resDoctores] = await Promise.all([
+                fetch("/api/config"), fetch("/api/me"), fetch("/api/doctores")
+            ])
             if (resConfig.ok) {
                 const data = await resConfig.json()
                 document.getElementById("toggle-autoconfirmar").checked = data.auto_confirmar
@@ -1576,11 +1631,39 @@
                 const me = await resMe.json()
                 rolActual = me.rol
                 usuarioActual = me.usuario
-                if (me.rol === "doctor") {
+                doctorIdActual = me.doctor_id || null
+                doctorNombreActual = me.doctor_nombre || null
+
+                // Auditoría solo para admin y doctor
+                if (me.rol === "admin" || me.rol === "doctor") {
                     document.getElementById("btn-auditoria").style.display = "flex"
                 }
+
+                // Filtro de doctores solo para admin y asistente
+                if ((me.rol === "admin" || me.rol === "asistente") && resDoctores.ok) {
+                    const dataDoctores = await resDoctores.json()
+                    dataDoctores.doctores.forEach(d => { doctoresMap[d.id] = d })
+                    const filtro = document.getElementById("filtro-doctor")
+                    filtro.style.display = "block"
+                    filtro.innerHTML = `<option value="">Todos los doctores</option>` +
+                        dataDoctores.doctores.map(d =>
+                            `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`
+                        ).join("")
+                }
+
+                // Si es doctor, mostrar su nombre en el panel
+                if (me.rol === "doctor" && doctorNombreActual) {
+                    const subtitulo = document.getElementById("agenda-subtitulo")
+                    if (subtitulo) {
+                        const orig = subtitulo.textContent
+                        subtitulo.textContent = orig // se actualizará en render
+                    }
+                    // Actualizar logo/header con nombre del doctor
+                    const logoNombre = document.querySelector(".logo-nombre")
+                    if (logoNombre) logoNombre.textContent = `Dentales — ${doctorNombreActual}`
+                }
             }
-        } catch {}
+        } catch(e) { console.error(e) }
     }
 
     async function cambiarAutoConfirmar(valor) {
