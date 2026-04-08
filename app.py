@@ -172,7 +172,7 @@ def get_auto_confirmar() -> bool:
     except Exception:
         return False
 
-def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str, confirmada: bool = False):
+def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: int, telefono: str, confirmada: bool = False) -> str:
     token = secrets.token_urlsafe(16)
     conn = get_conn()
     cursor = conn.cursor()
@@ -182,6 +182,7 @@ def guardar_cita(nombre: str, servicio: str, fecha: str, hora: str, duracion: in
     """, (nombre, servicio, fecha, hora, duracion, str(date.today()), telefono, confirmada, token))
     conn.commit()
     conn.close()
+    return token
 
 def obtener_citas():
     conn = get_conn()
@@ -637,8 +638,9 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request, background_
             status_code=409,
             content={"error": "Ese horario ya no está disponible", "slots_disponibles": slots}
         )
-    guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
-    background_tasks.add_task(notificar_doctora, cita.nombre, cita.servicio, cita.fecha, cita.hora)
+    token = guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion, cita.telefono, confirmada=True)
+    if cita.telefono:
+        background_tasks.add_task(enviar_whatsapp_confirmacion, cita.telefono, cita.nombre, cita.servicio, cita.fecha, cita.hora, token)
     usuario = DASHBOARD_USER if rol == "doctor" else ASSISTANT_USER
     registrar_auditoria(usuario, rol, "crear_cita", f"{cita.nombre} — {cita.servicio} — {cita.fecha} {cita.hora}")
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
