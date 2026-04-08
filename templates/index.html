@@ -109,12 +109,12 @@
             font-size: 13.5px;
             line-height: 1.55;
             position: relative;
-            animation: msgEntrada 0.22s ease;
+            animation: msgEntrada 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes msgEntrada {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(18px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .msg-time { font-size: 10px; opacity: 0.5; margin-top: 5px; text-align: right; }
@@ -248,7 +248,7 @@
             width: 100%;
             max-width: 420px;
             box-shadow: 0 2px 12px rgba(30,102,181,0.08);
-            animation: msgEntrada 0.25s ease;
+            animation: msgEntrada 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* Indicador de pasos */
