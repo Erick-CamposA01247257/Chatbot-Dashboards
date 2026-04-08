@@ -634,7 +634,7 @@ function agregarMensaje(texto, tipo) {
     if (tipo === "bot" && !citaAgendada) {
         const btnDiv = document.createElement("div")
         btnDiv.style.cssText = "align-self:flex-start; margin-top:-4px;"
-        btnDiv.innerHTML = `<button onclick="iniciarWizard()" style="
+        btnDiv.innerHTML = `<button class="btn-agendar-chat" onclick="iniciarWizard()" style="
             background: var(--verde);
             color: white;
             border: none;
@@ -962,6 +962,7 @@ async function confirmarCita() {
     if (res.ok) {
         citaAgendada = true
         document.querySelector(".btn-agendar-fijo")?.remove()
+        document.querySelectorAll(".btn-agendar-chat").forEach(b => b.remove())
         const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
