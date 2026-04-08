@@ -520,6 +520,9 @@ class CitaRequest(BaseModel):
         # Validar teléfono: exactamente 10 dígitos si se proporciona
         if self.telefono and not re.match(r'^\d{10}$', self.telefono):
             raise ValueError("Teléfono debe tener exactamente 10 dígitos")
+        # Validar servicio contra lista permitida
+        if self.servicio.lower() not in DURACIONES:
+            raise ValueError("Servicio no válido")
 
 class LoginRequest(BaseModel):
     usuario: str = Field(..., min_length=1, max_length=50)

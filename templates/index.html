@@ -621,11 +621,20 @@ function horaActual() {
     return now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0")
 }
 
+function escapeHtml(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+}
+
 function agregarMensaje(texto, tipo) {
     const chat = document.getElementById("chat")
     const div = document.createElement("div")
     div.className = `msg msg-${tipo}`
-    div.innerHTML = `${texto
+    div.innerHTML = `${escapeHtml(texto)
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>')
     }<div class="msg-time">${horaActual()}</div>`
