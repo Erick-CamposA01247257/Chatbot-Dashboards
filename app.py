@@ -289,7 +289,7 @@ def enviar_whatsapp(telefono: str, mensaje: str):
             "https://gate.whapi.cloud/messages/text",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             json={"to": f"521{telefono}@s.whatsapp.net", "body": mensaje},
-            timeout=10
+            timeout=30
         )
     except Exception as e:
         print(f"[WHAPI ERROR] {e}")
