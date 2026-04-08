@@ -11,16 +11,15 @@
         :root {
             --verde: #1E66B5;
             --verde-mid: #2A7FD4;
-            --verde-light: #E8F2FC;
-            --dorado: #C4A35A;
-            --dorado-light: #F5EDD8;
-            --crema: #FAF8F4;
-            --crema-chat: #F0EBE3;
-            --texto: #2C2C2A;
-            --texto-muted: #7A7570;
+            --verde-light: #EBF4FF;
+            --acento: #52B340;
+            --crema: #F5F9FF;
+            --crema-chat: #E8F1FB;
+            --texto: #1A2B45;
+            --texto-muted: #6B7B8F;
             --blanco: #FFFFFF;
-            --borde: rgba(196,163,90,0.2);
-            --borde-dark: rgba(196,163,90,0.4);
+            --borde: rgba(30,102,181,0.12);
+            --borde-dark: rgba(30,102,181,0.22);
         }
 
         body {
@@ -76,22 +75,23 @@
             align-self: center;
             background: var(--blanco);
             border: 1px solid var(--borde);
-            border-radius: 12px;
-            padding: 16px 20px;
+            border-radius: 16px;
+            padding: 20px 24px;
             text-align: center;
             max-width: 320px;
             margin-bottom: 4px;
+            box-shadow: 0 2px 12px rgba(30,102,181,0.08);
         }
 
         .bienvenida-icono {
-            width: 36px; height: 36px;
-            background: var(--dorado-light);
+            width: 40px; height: 40px;
+            background: var(--verde-light);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 10px;
         }
 
-        .bienvenida-icono svg { width: 18px; height: 18px; fill: var(--dorado); }
+        .bienvenida-icono svg { width: 20px; height: 20px; fill: var(--verde); }
 
         .bienvenida strong {
             display: block;
@@ -109,6 +109,12 @@
             font-size: 13.5px;
             line-height: 1.55;
             position: relative;
+            animation: msgEntrada 0.22s ease;
+        }
+
+        @keyframes msgEntrada {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .msg-time { font-size: 10px; opacity: 0.5; margin-top: 5px; text-align: right; }
@@ -116,16 +122,18 @@
         .msg-bot {
             background: var(--blanco);
             align-self: flex-start;
-            border-radius: 2px 12px 12px 12px;
-            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 2px 14px 14px 14px;
+            border: 1px solid var(--borde);
             color: var(--texto);
+            box-shadow: 0 1px 4px rgba(30,102,181,0.07);
         }
 
         .msg-usuario {
             background: var(--verde);
             color: var(--blanco);
             align-self: flex-end;
-            border-radius: 12px 2px 12px 12px;
+            border-radius: 14px 2px 14px 14px;
+            box-shadow: 0 2px 8px rgba(30,102,181,0.25);
         }
 
         .msg-usuario .msg-time { opacity: 0.6; }
@@ -133,16 +141,17 @@
         .typing {
             background: var(--blanco);
             align-self: flex-start;
-            border-radius: 2px 12px 12px 12px;
-            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 2px 14px 14px 14px;
+            border: 1px solid var(--borde);
             padding: 12px 16px;
+            box-shadow: 0 1px 4px rgba(30,102,181,0.07);
         }
 
         .typing-dots { display: flex; gap: 5px; align-items: center; }
 
         .typing-dots span {
             width: 7px; height: 7px;
-            background: var(--dorado);
+            background: var(--verde);
             border-radius: 50%;
             animation: pulse 1.2s infinite;
         }
@@ -159,21 +168,22 @@
 
         .sug-btn {
             background: var(--blanco);
-            border: 1px solid var(--borde);
+            border: 1px solid var(--borde-dark);
             color: var(--verde);
             border-radius: 20px;
             padding: 7px 16px;
             font-size: 12px;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
-            font-weight: 400;
+            font-weight: 500;
             transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(30,102,181,0.08);
         }
 
-        .sug-btn:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+        .sug-btn:hover { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
 
         .input-area {
-            background: var(--crema);
+            background: var(--blanco);
             padding: 10px 14px;
             display: flex;
             gap: 10px;
@@ -212,7 +222,7 @@
         .btn-enviar svg { width: 16px; height: 16px; fill: var(--blanco); margin-left: 2px; }
 
         .btn-agendar-fijo {
-            background: none;
+            background: var(--verde-light);
             border: 1px solid var(--borde-dark);
             color: var(--verde);
             border-radius: 20px;
@@ -226,7 +236,7 @@
             transition: all 0.2s;
         }
 
-        .btn-agendar-fijo:hover { background: var(--verde-light); border-color: var(--verde-mid); }
+        .btn-agendar-fijo:hover { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
 
         /* ── Wizard de agendado ── */
         .wizard-card {
@@ -237,6 +247,8 @@
             align-self: flex-start;
             width: 100%;
             max-width: 420px;
+            box-shadow: 0 2px 12px rgba(30,102,181,0.08);
+            animation: msgEntrada 0.25s ease;
         }
 
         /* Indicador de pasos */
@@ -383,7 +395,7 @@
         }
 
         .cal-dia:hover:not(:disabled) { background: var(--verde-light); color: var(--verde); }
-        .cal-dia.hoy { font-weight: 600; color: var(--dorado); }
+        .cal-dia.hoy { font-weight: 600; color: var(--verde); }
         .cal-dia.seleccionado { background: var(--verde); color: var(--blanco); font-weight: 600; }
         .cal-dia:disabled { color: #D0CCC7; cursor: default; }
 
@@ -396,7 +408,7 @@
 
         .servicio-btn {
             padding: 14px 12px;
-            border: 1.5px solid var(--borde-dark);
+            border: 1.5px solid var(--borde);
             border-radius: 10px;
             cursor: pointer;
             background: var(--crema);
@@ -428,7 +440,7 @@
 
         .slot-btn {
             padding: 12px 8px;
-            border: 1.5px solid var(--borde-dark);
+            border: 1.5px solid var(--borde);
             border-radius: 10px;
             font-size: 13px;
             font-weight: 500;
@@ -457,7 +469,7 @@
             align-items: center;
             gap: 10px;
             padding: 8px 0;
-            border-bottom: 1px solid rgba(196,163,90,0.15);
+            border-bottom: 1px solid var(--borde);
         }
 
         .resumen-fila:last-child { border-bottom: none; }
@@ -492,7 +504,7 @@
 
         .nombre-input-wrap input {
             width: 100%;
-            border: 1.5px solid var(--borde-dark);
+            border: 1.5px solid var(--borde);
             border-radius: 10px;
             padding: 12px 14px;
             font-size: 14px;
