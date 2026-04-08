@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOSADENT — Asistente Virtual</title>
+    <title>Dentales — Asistente Virtual</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -546,7 +546,7 @@
         </svg>
     </div>
     <div class="header-info">
-        <h1>MOSADENT</h1>
+        <h1>Dentales</h1>
         <div class="header-sub">
             <div class="status-dot"></div>
             <span>Asistente virtual · En línea</span>
@@ -561,13 +561,13 @@
                 <path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/>
             </svg>
         </div>
-        <strong>Bienvenido a MOSADENT</strong>
+        <strong>Bienvenido a Dentales</strong>
         <div class="bienvenida-divider"></div>
         <p>Consultorio dental en Guadalupe, N.L.<br>Lunes a Domingo · 10:00 AM – 7:00 PM</p>
     </div>
 
     <div class="msg msg-bot">
-        ¡Bienvenido al chat virtual de MOSADENT! Puede agendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación.
+        ¡Bienvenido al chat virtual de Dentales! Puede agendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación.
         <div class="msg-time">ahora</div>
     </div>
 
@@ -965,7 +965,7 @@ async function confirmarCita() {
         const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
-        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en MOSADENT!`, "bot")
+        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en Dentales!`, "bot")
     } else {
         agregarMensaje(`Lo sentimos, ese horario ya no está disponible. Por favor seleccione otro.`, "bot")
         setTimeout(iniciarWizard, 1000)
