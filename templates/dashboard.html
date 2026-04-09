@@ -1205,7 +1205,8 @@
         // Una columna por doctor
         doctores.forEach(doc => {
             const col = document.createElement("div")
-            col.style.cssText = `flex:1; position:relative; border-left:1px solid var(--borde)`
+            col.style.cssText = `flex:1; position:relative; border-left:1px solid var(--borde); cursor:cell`
+            col.onclick = e => abrirNuevaCitaEnSlot(e, fechaSeleccionada, doc.id)
 
             // Líneas de hora
             for (let h = HORA_INICIO; h < HORA_FIN; h++) {
@@ -1274,7 +1275,8 @@
         grid.innerHTML = ""
 
         const wrapper = document.createElement("div")
-        wrapper.style.position = "relative"
+        wrapper.style.cssText = "position:relative; cursor:cell"
+        wrapper.onclick = e => abrirNuevaCitaEnSlot(e, fechaSeleccionada, doctorIdActual)
 
         for (let h = HORA_INICIO; h < HORA_FIN; h++) {
             const fila = document.createElement("div")
@@ -1380,17 +1382,30 @@
     }
 
     // ── Nueva cita ──
-    function abrirNuevaCita() {
+    let horaPreseleccionada = null
+
+    function abrirNuevaCitaEnSlot(e, fecha, doctorId = null) {
+        if (e.target.closest(".grid-bloque")) return  // clic en cita existente — ignorar
+        const offsetY = e.offsetY !== undefined ? e.offsetY : e.clientY - e.currentTarget.getBoundingClientRect().top
+        const horaDecimal = HORA_INICIO + offsetY / ALTURA_HORA
+        const horaEntera = Math.floor(horaDecimal)
+        const minutos = Math.floor((horaDecimal - horaEntera) * 2) * 30  // snap a 0 o 30
+        const hora = `${String(horaEntera).padStart(2,"0")}:${String(minutos).padStart(2,"0")}`
+        abrirNuevaCita({ fecha, hora })
+    }
+
+    function abrirNuevaCita(opts = {}) {
         const hoy = new Date().toISOString().split("T")[0]
         document.getElementById("nc-nombre").value = ""
         document.getElementById("nc-telefono").value = ""
         document.getElementById("nc-servicio").value = ""
-        document.getElementById("nc-fecha").value = fechaSeleccionada >= hoy ? fechaSeleccionada : hoy
+        document.getElementById("nc-fecha").value = opts.fecha || (fechaSeleccionada >= hoy ? fechaSeleccionada : hoy)
         document.getElementById("nc-fecha").min = hoy
         document.getElementById("nc-hora").innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
         document.getElementById("nc-error").classList.remove("visible")
         document.getElementById("btn-nc-guardar").disabled = false
         document.getElementById("btn-nc-guardar").textContent = "Guardar cita"
+        horaPreseleccionada = opts.hora || null
         document.getElementById("modal-nueva-overlay").classList.add("visible")
         cargarSlotsNuevaCita()
     }
@@ -1419,6 +1434,10 @@
         } else {
             selectHora.innerHTML = `<option value="">Seleccione hora</option>` +
                 data.slots.map(s => `<option value="${s}">${convertir12h(s)}</option>`).join("")
+            if (horaPreseleccionada) {
+                selectHora.value = horaPreseleccionada
+                horaPreseleccionada = null
+            }
         }
     }
 
