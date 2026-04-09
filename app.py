@@ -50,6 +50,8 @@ BACKUP_EMAIL       = os.environ.get("BACKUP_EMAIL") or GMAIL_USER
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD") or ""
 ASSISTANT_USER     = os.environ.get("ASSISTANT_USER") or ""
 ASSISTANT_PASSWORD = os.environ.get("ASSISTANT_PASSWORD") or ""
+OWNER_USER         = os.environ.get("OWNER_USER") or ""
+OWNER_PASSWORD     = os.environ.get("OWNER_PASSWORD") or ""
 SESSION_SECRET     = os.environ.get("SESSION_SECRET") or ""
 DOCTOR_PHONE       = os.environ.get("DOCTOR_PHONE") or ""
 
@@ -652,6 +654,13 @@ async def api_login(request: Request, datos: LoginRequest):
         resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
         return resp
 
+    # Owner (solo exportar)
+    if OWNER_USER and datos.usuario == OWNER_USER and datos.password == OWNER_PASSWORD:
+        sessions[session_token] = {"username": OWNER_USER, "rol": "owner", "doctor_id": None}
+        resp = JSONResponse(content={"status": "ok", "rol": "owner"})
+        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
+        return resp
+
     # Asistente (env var)
     if ASSISTANT_USER and datos.usuario == ASSISTANT_USER and datos.password == ASSISTANT_PASSWORD:
         sessions[session_token] = {"username": ASSISTANT_USER, "rol": "asistente", "doctor_id": None}
@@ -900,6 +909,118 @@ async def marcar_no_show(cita_id: int, request: Request):
         registrar_auditoria(sesion["username"], sesion["rol"], "no_show",
                             f"{cita[0]} — {cita[1]} — {cita[2]} {cita[3]}")
     return JSONResponse(content={"status": "ok"})
+
+@app.get("/api/exportar")
+async def exportar_citas(request: Request):
+    from fastapi.responses import StreamingResponse
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    sesion = verificar_sesion(request)
+    if not sesion or sesion["rol"] not in ("admin", "owner"):
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
+
+    conn = get_conn()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.id, c.nombre, c.telefono, c.servicio, c.fecha, c.hora, c.duracion,
+               c.confirmada, c.no_show, c.fecha_registro,
+               COALESCE(d.nombre, '—') AS doctor
+        FROM citas c
+        LEFT JOIN doctores d ON c.doctor_id = d.id
+        ORDER BY c.fecha DESC, c.hora DESC
+    """)
+    citas = cursor.fetchall()
+    conn.close()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Citas"
+
+    # Estilos
+    header_fill = PatternFill("solid", fgColor="1E66B5")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin = Side(style="thin", color="D0D7E2")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal="center", vertical="center")
+
+    headers = ["ID", "Paciente", "Teléfono", "Servicio", "Fecha", "Hora",
+               "Duración (min)", "Doctor", "Estado", "Registrada"]
+    ws.append(headers)
+
+    for col_idx, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    # Datos
+    for cita in citas:
+        id_, nombre, tel, servicio, fecha, hora, dur, confirmada, no_show, fecha_reg, doctor = cita
+        if no_show:
+            estado = "No se presentó"
+        elif confirmada:
+            estado = "Confirmada"
+        else:
+            estado = "Pendiente"
+        row = [id_, nombre, tel or "—", servicio, fecha, hora, dur, doctor, estado, fecha_reg]
+        ws.append(row)
+        row_idx = ws.max_row
+        # Colorear estado
+        estado_cell = ws.cell(row=row_idx, column=9)
+        if no_show:
+            estado_cell.font = Font(color="6B7280")
+        elif confirmada:
+            estado_cell.font = Font(color="16A34A", bold=True)
+        else:
+            estado_cell.font = Font(color="1E66B5")
+        for col_idx in range(1, len(headers) + 1):
+            ws.cell(row=row_idx, column=col_idx).border = border
+            ws.cell(row=row_idx, column=col_idx).alignment = center
+
+    # Anchos de columna
+    anchos = [6, 28, 16, 30, 12, 8, 14, 20, 14, 18]
+    for i, ancho in enumerate(anchos, 1):
+        ws.column_dimensions[get_column_letter(i)].width = ancho
+    ws.row_dimensions[1].height = 28
+
+    # Hoja resumen
+    ws2 = wb.create_sheet("Resumen")
+    total = len(citas)
+    confirmadas = sum(1 for c in citas if c[7])
+    no_shows = sum(1 for c in citas if c[8])
+    pendientes = total - confirmadas - no_shows
+
+    resumen = [
+        ("Total de citas", total),
+        ("Confirmadas", confirmadas),
+        ("Pendientes", pendientes),
+        ("No se presentaron", no_shows),
+    ]
+    ws2.append(["Métrica", "Cantidad"])
+    for cell in ws2[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+    for label, val in resumen:
+        ws2.append([label, val])
+    ws2.column_dimensions["A"].width = 24
+    ws2.column_dimensions["B"].width = 12
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=citas_{fecha_hoy}.xlsx"}
+    )
 
 @app.get("/api/auditoria")
 async def get_auditoria(request: Request):
