@@ -93,6 +93,28 @@ DURACION_DEFAULT = 60
 HORA_INICIO = 10
 HORA_FIN = 19
 
+# Servicios canónicos (nombre para mostrar, duración) — orden del dropdown
+SERVICIOS_DISPLAY = [
+    ("Limpieza dental", 30),
+    ("Revisión y diagnóstico general", 30),
+    ("Blanqueamiento dental", 60),
+    ("Resinas y restauraciones", 60),
+    ("Extracciones", 45),
+    ("Ortodoncia y brackets", 60),
+    ("Implantes dentales", 90),
+]
+
+# Mapeo username → lista de servicios canónicos
+def _build_servicios_por_username():
+    result = {}
+    for nombre, _ in SERVICIOS_DISPLAY:
+        username = SERVICIOS_DOCTOR.get(nombre.lower())
+        if username:
+            result.setdefault(username, []).append(nombre)
+    return result
+
+SERVICIOS_POR_USERNAME = _build_servicios_por_username()
+
 SISTEMA_MOSADENT = """Eres el asistente virtual de MOSADENT, un consultorio dental en Guadalupe, Nuevo León.
 
 INFORMACIÓN DEL CONSULTORIO:
@@ -235,7 +257,8 @@ def obtener_doctores():
     return [
         {"id": f[0], "nombre": f[1], "color": f[2],
          "hora_inicio": f[3], "hora_fin": f[4],
-         "whatsapp": f[5], "username": f[6]}
+         "whatsapp": f[5], "username": f[6],
+         "servicios": SERVICIOS_POR_USERNAME.get(f[6], [])}
         for f in filas
     ]
 

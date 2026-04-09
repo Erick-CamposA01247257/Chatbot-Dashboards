@@ -735,13 +735,6 @@
             <label>Servicio</label>
             <select id="nc-servicio" onchange="cargarSlotsNuevaCita()">
                 <option value="">Seleccione un servicio</option>
-                <option value="Limpieza dental">Limpieza dental (30 min)</option>
-                <option value="Revisión y diagnóstico general">Revisión y diagnóstico general (30 min)</option>
-                <option value="Blanqueamiento dental">Blanqueamiento dental (60 min)</option>
-                <option value="Resinas y restauraciones">Resinas y restauraciones (60 min)</option>
-                <option value="Extracciones">Extracciones (45 min)</option>
-                <option value="Ortodoncia y brackets">Ortodoncia y brackets (60 min)</option>
-                <option value="Implantes dentales">Implantes dentales (90 min)</option>
             </select>
         </div>
         <div class="form-campo">
@@ -1394,17 +1387,35 @@
         const horaEntera = Math.floor(horaDecimal)
         const minutos = Math.floor((horaDecimal - horaEntera) * 2) * 30  // snap a 0 o 30
         const hora = `${String(horaEntera).padStart(2,"0")}:${String(minutos).padStart(2,"0")}`
-        abrirNuevaCita({ fecha, hora })
+        abrirNuevaCita({ fecha, hora, doctorId })
     }
 
     function abrirNuevaCita(opts = {}) {
         const hoy = new Date().toISOString().split("T")[0]
         document.getElementById("nc-nombre").value = ""
         document.getElementById("nc-telefono").value = ""
-        document.getElementById("nc-servicio").value = ""
         document.getElementById("nc-fecha").value = opts.fecha || (fechaSeleccionada >= hoy ? fechaSeleccionada : hoy)
         document.getElementById("nc-fecha").min = hoy
         document.getElementById("nc-hora").innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
+
+        // Filtrar servicios según el doctor del slot clickeado
+        const selectServicio = document.getElementById("nc-servicio")
+        const doctor = opts.doctorId ? doctoresMap[opts.doctorId] : null
+        const todosServicios = [
+            { nombre: "Limpieza dental", dur: 30 },
+            { nombre: "Revisión y diagnóstico general", dur: 30 },
+            { nombre: "Blanqueamiento dental", dur: 60 },
+            { nombre: "Resinas y restauraciones", dur: 60 },
+            { nombre: "Extracciones", dur: 45 },
+            { nombre: "Ortodoncia y brackets", dur: 60 },
+            { nombre: "Implantes dentales", dur: 90 },
+        ]
+        const serviciosFiltrados = doctor && doctor.servicios && doctor.servicios.length > 0
+            ? todosServicios.filter(s => doctor.servicios.includes(s.nombre))
+            : todosServicios
+        selectServicio.innerHTML = `<option value="">Seleccione un servicio</option>` +
+            serviciosFiltrados.map(s => `<option value="${s.nombre}">${s.nombre} (${s.dur} min)</option>`).join("")
+        selectServicio.value = ""
         document.getElementById("nc-error").classList.remove("visible")
         document.getElementById("btn-nc-guardar").disabled = false
         document.getElementById("btn-nc-guardar").textContent = "Guardar cita"
