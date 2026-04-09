@@ -1005,11 +1005,14 @@
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
         const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
-        // "Día bloqueado" solo si es un bloqueo global (sin doctor específico)
+        // "Día bloqueado" global (sin doctor) o del propio doctor si está en vista individual
         const bloqueosGlobalesDia = bloqueosDelDia.filter(b => !b.hora_inicio && !b.doctor_id)
-        // Bloqueos de día completo de doctores específicos (para mostrar como aviso)
-        const bloqueosDoctorDia = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id != null)
-        const diaBloqueado = bloqueosGlobalesDia.length > 0
+        const bloqueosDoctorDia   = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id != null)
+        // Para doctor individual: su propio bloqueo de día completo también muestra el banner
+        const bloqueoPropioDoctor = rolActual === 'doctor'
+            ? bloqueosDoctorDia.find(b => Number(b.doctor_id) === Number(doctorIdActual))
+            : null
+        const diaBloqueado = bloqueosGlobalesDia.length > 0 || !!bloqueoPropioDoctor
 
         const citasPorHora = {}
         citasDelDia.forEach(c => {
@@ -1030,7 +1033,7 @@
         timeline.innerHTML = ""
 
         if (diaBloqueado) {
-            const bloqueo = bloqueosGlobalesDia[0]
+            const bloqueo = bloqueoPropioDoctor || bloqueosGlobalesDia[0]
             const card = document.createElement("div")
             card.style.cssText = "background:#FFF5F5;border:1px solid #FECACA;border-left:4px solid #EF4444;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"
             card.innerHTML = `
@@ -1273,6 +1276,20 @@
                 <div class="grid-hora-linea"></div>`
             wrapper.appendChild(fila)
         }
+        // Overlay de día completo bloqueado (doctor individual o global)
+        const diaCompletoSingle = todosLosBloqueos.find(b =>
+            b.fecha === fechaSeleccionada && !b.hora_inicio &&
+            (!b.doctor_id || Number(b.doctor_id) === Number(doctorIdActual))
+        )
+        if (diaCompletoSingle) {
+            const overlay = document.createElement("div")
+            overlay.style.cssText = `position:absolute;top:0;bottom:0;left:46px;right:4px;
+                background:#FEE2E280;border:1px solid #FECACA;
+                display:flex;align-items:center;justify-content:center;z-index:2;border-radius:4px`
+            overlay.innerHTML = `<span style="font-size:12px;font-weight:600;color:#DC2626">🚫 Día bloqueado</span>`
+            wrapper.appendChild(overlay)
+        }
+
         grid.appendChild(wrapper)
 
         citasDelDia.forEach(cita => {
@@ -1296,7 +1313,10 @@
             wrapper.appendChild(bloque)
         })
 
-        const bloqueosDelDiaGrid = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
+        const bloqueosDelDiaGrid = todosLosBloqueos.filter(b =>
+            b.fecha === fechaSeleccionada && b.hora_inicio &&
+            (!b.doctor_id || Number(b.doctor_id) === Number(doctorIdActual))
+        )
         bloqueosDelDiaGrid.forEach(b => {
             const [hh, mm] = b.hora_inicio.split(":").map(Number)
             const [hh2, mm2] = b.hora_fin.split(":").map(Number)
@@ -1793,17 +1813,24 @@
                     document.getElementById("btn-auditoria").style.display = "flex"
                 }
 
-                // Filtro de doctores solo para admin y asistente
-                if ((me.rol === "admin" || me.rol === "asistente") && resDoctores.ok) {
+                // Cargar doctores para todos los roles
+                if (resDoctores.ok) {
                     const dataDoctores = await resDoctores.json()
                     dataDoctores.doctores.forEach(d => { doctoresMap[d.id] = d })
-                    const filtro = document.getElementById("filtro-doctor")
-                    filtro.style.display = "block"
-                    filtro.innerHTML = `<option value="">Todos los doctores</option>` +
-                        dataDoctores.doctores.map(d =>
-                            `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`
-                        ).join("")
+
+                    // Filtro solo para admin y asistente
+                    if (me.rol === "admin" || me.rol === "asistente") {
+                        const filtro = document.getElementById("filtro-doctor")
+                        filtro.style.display = "block"
+                        filtro.innerHTML = `<option value="">Todos los doctores</option>` +
+                            dataDoctores.doctores.map(d =>
+                                `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`
+                            ).join("")
+                    }
                 }
+
+                // Re-render después de cargar doctoresMap (fix timing)
+                render()
 
                 // Si es doctor, mostrar su nombre en el panel
                 if (me.rol === "doctor" && doctorNombreActual) {
