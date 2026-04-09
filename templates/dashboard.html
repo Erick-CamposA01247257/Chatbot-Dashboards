@@ -1162,6 +1162,7 @@
     function renderGridMultiDoctor(doctores) {
         const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
         const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
+        const todosBloqueosDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
         const grid = document.getElementById("grid-visual")
         grid.innerHTML = ""
 
@@ -1209,7 +1210,7 @@
             }
 
             // Día completo bloqueado para este doctor o global
-            const diaCompleto = bloqueosDelDia.find(b => !b.hora_inicio && (!b.doctor_id || Number(b.doctor_id) === Number(doc.id)))
+            const diaCompleto = todosBloqueosDia.find(b => !b.hora_inicio && (!b.doctor_id || Number(b.doctor_id) === Number(doc.id)))
             if (diaCompleto) {
                 const overlay = document.createElement("div")
                 overlay.style.cssText = `position:absolute;inset:0;background:#FEE2E280;
