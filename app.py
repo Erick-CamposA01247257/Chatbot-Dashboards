@@ -41,6 +41,15 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none';"
+    )
     return response
 
 DASHBOARD_USER     = os.environ.get("DASHBOARD_USER") or ""
@@ -408,6 +417,18 @@ def verificar_sesion(request: Request) -> dict | None:
         return None
     return sessions.get(token)
 
+def verificar_sesion_activa(request: Request, roles_permitidos: list = None) -> dict | None:
+    """Verifica sesión y opcionalmente que el rol esté permitido.
+    roles_permitidos=None significa cualquier rol excepto 'owner'.
+    roles_permitidos=['admin','doctor','asistente'] = cualquier rol que no sea owner.
+    """
+    sesion = verificar_sesion(request)
+    if not sesion:
+        return None
+    if roles_permitidos and sesion["rol"] not in roles_permitidos:
+        return None
+    return sesion
+
 def registrar_auditoria(usuario: str, rol: str, accion: str, detalle: str):
     try:
         ahora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
@@ -690,6 +711,9 @@ async def api_login(request: Request, datos: LoginRequest):
     except Exception as e:
         print(f"[Login Error] {e}")
 
+    # Registrar intento fallido
+    registrar_auditoria(datos.usuario, "desconocido", "login_fallido",
+                        f"IP: {request.client.host if request.client else 'desconocida'}")
     return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
 
 @app.get("/api/logout")
@@ -743,6 +767,8 @@ async def api_citas(request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     # Admin y asistente ven todas; doctor solo las suyas
     doctor_id = sesion.get("doctor_id") if sesion["rol"] == "doctor" else None
     citas = obtener_citas(doctor_id)
@@ -793,6 +819,8 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request, background_
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     doctor_id = asignar_doctor(cita.servicio)
     duracion  = get_duracion(cita.servicio)
     slots     = calcular_slots(cita.fecha, duracion, doctor_id)
@@ -815,6 +843,8 @@ async def confirmar_cita(cita_id: int, request: Request, background_tasks: Backg
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("UPDATE citas SET confirmada = TRUE WHERE id = %s", (cita_id,))
@@ -835,6 +865,8 @@ async def eliminar_cita(cita_id: int, request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT nombre, servicio, fecha, hora FROM citas WHERE id = %s", (cita_id,))
@@ -858,6 +890,8 @@ async def set_config(request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     body = await request.json()
     valor = "true" if body.get("auto_confirmar") else "false"
     conn = get_conn()
@@ -875,6 +909,8 @@ async def confirmar_lote(request: Request, background_tasks: BackgroundTasks):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     body = await request.json()
     ids = body.get("ids", [])
     if not ids:
@@ -903,6 +939,8 @@ async def marcar_no_show(cita_id: int, request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("UPDATE citas SET no_show = TRUE WHERE id = %s", (cita_id,))
@@ -1041,6 +1079,7 @@ async def get_auditoria(request: Request):
         "crear_cita": "Creó cita", "confirmar_cita": "Confirmó cita",
         "eliminar_cita": "Eliminó cita", "no_show": "No se presentó",
         "crear_bloqueo": "Bloqueó horario", "eliminar_bloqueo": "Quitó bloqueo",
+        "login_fallido": "⚠️ Login fallido",
     }
     return JSONResponse(content={"registros": [
         {"id": f[0], "usuario": f[1], "rol": f[2],
@@ -1068,6 +1107,8 @@ async def crear_bloqueo(request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     body = await request.json()
     fecha = str(body.get("fecha", ""))[:10]
     todo_el_dia = bool(body.get("todo_el_dia", False))
@@ -1112,6 +1153,8 @@ async def eliminar_bloqueo(bloqueo_id: int, request: Request):
     sesion = verificar_sesion(request)
     if not sesion:
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if sesion["rol"] == "owner":
+        return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT fecha, hora_inicio, hora_fin, motivo FROM bloqueos WHERE id = %s", (bloqueo_id,))
@@ -1166,7 +1209,11 @@ async def api_cancelar(token: str, request: Request):
 @limiter.limit("30/minute")
 async def chat(request: Request, mensaje: Mensaje):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    # Límite de 1000 sesiones en memoria para prevenir DoS
     if mensaje.session_id not in conversaciones:
+        if len(conversaciones) >= 1000:
+            oldest = next(iter(conversaciones))
+            del conversaciones[oldest]
         conversaciones[mensaje.session_id] = []
     conversaciones[mensaje.session_id].append({"role": "user", "content": mensaje.texto})
     response = client.messages.create(
@@ -1180,7 +1227,8 @@ async def chat(request: Request, mensaje: Mensaje):
     return {"respuesta": respuesta}
 
 @app.post("/limpiar")
-async def limpiar(session: dict = {"session_id": "default"}):
+@limiter.limit("10/minute")
+async def limpiar(request: Request, session: dict = {"session_id": "default"}):
     session_id = session.get("session_id", "default")
     if session_id in conversaciones:
         del conversaciones[session_id]
