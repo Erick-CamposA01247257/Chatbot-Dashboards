@@ -170,9 +170,11 @@ def init_db():
             fecha TEXT NOT NULL,
             hora_inicio TEXT,
             hora_fin TEXT,
-            motivo TEXT DEFAULT ''
+            motivo TEXT DEFAULT '',
+            doctor_id INTEGER
         )
     """)
+    cursor.execute("ALTER TABLE bloqueos ADD COLUMN IF NOT EXISTS doctor_id INTEGER")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS auditoria (
             id SERIAL PRIMARY KEY,
@@ -317,13 +319,20 @@ def get_duracion(servicio: str) -> int:
             return val
     return DURACION_DEFAULT
 
-def obtener_bloqueos_fecha(fecha: str):
+def obtener_bloqueos_fecha(fecha: str, doctor_id: int = None):
     conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, hora_inicio, hora_fin, motivo FROM bloqueos WHERE fecha = %s", (fecha,))
+    if doctor_id:
+        # Bloqueos globales (doctor_id IS NULL) + bloqueos del doctor específico
+        cursor.execute(
+            "SELECT id, hora_inicio, hora_fin, motivo, doctor_id FROM bloqueos WHERE fecha = %s AND (doctor_id IS NULL OR doctor_id = %s)",
+            (fecha, doctor_id)
+        )
+    else:
+        cursor.execute("SELECT id, hora_inicio, hora_fin, motivo, doctor_id FROM bloqueos WHERE fecha = %s", (fecha,))
     filas = cursor.fetchall()
     conn.close()
-    return [{"id": f[0], "hora_inicio": f[1], "hora_fin": f[2], "motivo": f[3]} for f in filas]
+    return [{"id": f[0], "hora_inicio": f[1], "hora_fin": f[2], "motivo": f[3], "doctor_id": f[4]} for f in filas]
 
 def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
                    hora_inicio: int = None, hora_fin: int = None):
@@ -345,7 +354,7 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
             pass
 
     citas_del_dia = obtener_citas_por_fecha(fecha, doctor_id)
-    bloqueos_dia  = obtener_bloqueos_fecha(fecha)
+    bloqueos_dia  = obtener_bloqueos_fecha(fecha, doctor_id)
 
     if any(b["hora_inicio"] is None for b in bloqueos_dia):
         return []
@@ -920,11 +929,11 @@ async def get_bloqueos(request: Request):
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     conn = get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, fecha, hora_inicio, hora_fin, motivo FROM bloqueos ORDER BY fecha, hora_inicio")
+    cursor.execute("SELECT id, fecha, hora_inicio, hora_fin, motivo, doctor_id FROM bloqueos ORDER BY fecha, hora_inicio")
     filas = cursor.fetchall()
     conn.close()
     return JSONResponse(content={"bloqueos": [
-        {"id": f[0], "fecha": f[1], "hora_inicio": f[2], "hora_fin": f[3], "motivo": f[4]}
+        {"id": f[0], "fecha": f[1], "hora_inicio": f[2], "hora_fin": f[3], "motivo": f[4], "doctor_id": f[5]}
         for f in filas
     ]})
 
@@ -952,11 +961,18 @@ async def crear_bloqueo(request: Request):
             return JSONResponse(status_code=400, content={"error": "Formato de hora inválido"})
         if hora_inicio >= hora_fin:
             return JSONResponse(status_code=400, content={"error": "hora_fin debe ser mayor que hora_inicio"})
+    # doctor_id: null = todos, número = doctor específico
+    bloqueo_doctor_id = body.get("doctor_id") or sesion.get("doctor_id")
+    if bloqueo_doctor_id:
+        try:
+            bloqueo_doctor_id = int(bloqueo_doctor_id)
+        except (TypeError, ValueError):
+            bloqueo_doctor_id = None
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO bloqueos (fecha, hora_inicio, hora_fin, motivo) VALUES (%s, %s, %s, %s) RETURNING id",
-        (fecha, hora_inicio, hora_fin, motivo)
+        "INSERT INTO bloqueos (fecha, hora_inicio, hora_fin, motivo, doctor_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+        (fecha, hora_inicio, hora_fin, motivo, bloqueo_doctor_id)
     )
     new_id = cursor.fetchone()[0]
     conn.commit()

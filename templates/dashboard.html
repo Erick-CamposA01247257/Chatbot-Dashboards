@@ -851,6 +851,12 @@
                 <select id="bl-fin"></select>
             </div>
         </div>
+        <div class="form-campo" id="bl-doctor-campo" style="display:none">
+            <label>¿Para quién?</label>
+            <select id="bl-doctor">
+                <option value="">Todos los doctores</option>
+            </select>
+        </div>
         <div class="form-campo">
             <label>Motivo (opcional)</label>
             <input type="text" id="bl-motivo" placeholder="Ej. Vacaciones, reunión..." maxlength="100" />
@@ -1198,8 +1204,9 @@
                 col.appendChild(bloque)
             })
 
-            // Bloqueos en esta columna
-            bloqueosDelDia.forEach(b => {
+            // Bloqueos: globales (doctor_id null) o específicos de este doctor
+            bloqueosDelDia.filter(b => !b.doctor_id || b.doctor_id === doc.id).forEach(b => {
+                if (!b.hora_inicio) return  // día completo se maneja en timeline
                 const [hh, mm] = b.hora_inicio.split(":").map(Number)
                 const [hh2, mm2] = b.hora_fin.split(":").map(Number)
                 const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
@@ -1208,7 +1215,7 @@
                 const bloque = document.createElement("div")
                 bloque.className = "grid-bloque bloqueado"
                 bloque.style.cssText = `top:${top}px; height:${height}px; left:2px; right:2px; position:absolute`
-                bloque.innerHTML = `<div class="grid-bloque-nombre">🚫</div>`
+                bloque.innerHTML = `<div class="grid-bloque-nombre">🚫 ${b.motivo ? escaparHTML(b.motivo) : 'Bloqueado'}</div>`
                 col.appendChild(bloque)
             })
 
@@ -1566,6 +1573,19 @@
         document.getElementById("bl-inicio").innerHTML = opts
         document.getElementById("bl-fin").innerHTML = opts
         document.getElementById("bl-fin").value = "12:00"
+
+        // Selector de doctor solo para admin/asistente
+        const doctorCampo = document.getElementById("bl-doctor-campo")
+        const doctorSel = document.getElementById("bl-doctor")
+        const doctores = Object.values(doctoresMap)
+        if ((rolActual === 'admin' || rolActual === 'asistente') && doctores.length > 0) {
+            doctorCampo.style.display = "block"
+            doctorSel.innerHTML = `<option value="">Todos los doctores</option>` +
+                doctores.map(d => `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`).join("")
+        } else {
+            doctorCampo.style.display = "none"
+        }
+
         document.getElementById("modal-bloqueo-overlay").classList.add("visible")
     }
 
@@ -1599,10 +1619,11 @@
         btn.disabled = true
         btn.textContent = "Guardando..."
 
+        const doctorId = document.getElementById("bl-doctor")?.value || null
         const res = await fetch("/api/bloqueos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fecha, todo_el_dia: todoDia, hora_inicio: horaInicio, hora_fin: horaFin, motivo })
+            body: JSON.stringify({ fecha, todo_el_dia: todoDia, hora_inicio: horaInicio, hora_fin: horaFin, motivo, doctor_id: doctorId || null })
         })
 
         if (res.ok) {
