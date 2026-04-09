@@ -750,6 +750,9 @@
         </div>
         <div class="form-campo">
             <label>Hora disponible</label>
+            <div id="nc-hora-badge" style="display:none;background:#EBF4FF;border:1px solid #B3D1F0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:500;color:#1E66B5;margin-bottom:6px">
+                🕐 <span id="nc-hora-badge-label"></span> — seleccione el servicio para confirmar
+            </div>
             <select id="nc-hora">
                 <option value="">Seleccione fecha y servicio primero</option>
             </select>
@@ -1406,6 +1409,16 @@
         document.getElementById("btn-nc-guardar").disabled = false
         document.getElementById("btn-nc-guardar").textContent = "Guardar cita"
         horaPreseleccionada = opts.hora || null
+        const badge = document.getElementById("nc-hora-badge")
+        badge.style.background = "#EBF4FF"
+        badge.style.borderColor = "#B3D1F0"
+        badge.innerHTML = `🕐 <span id="nc-hora-badge-label"></span> — seleccione el servicio para confirmar`
+        if (horaPreseleccionada) {
+            document.getElementById("nc-hora-badge-label").textContent = convertir12h(horaPreseleccionada)
+            badge.style.display = "block"
+        } else {
+            badge.style.display = "none"
+        }
         document.getElementById("modal-nueva-overlay").classList.add("visible")
         cargarSlotsNuevaCita()
     }
@@ -1436,6 +1449,16 @@
                 data.slots.map(s => `<option value="${s}">${convertir12h(s)}</option>`).join("")
             if (horaPreseleccionada) {
                 selectHora.value = horaPreseleccionada
+                const badge = document.getElementById("nc-hora-badge")
+                if (selectHora.value === horaPreseleccionada) {
+                    // hora disponible — ocultar badge, el select ya la muestra
+                    badge.style.display = "none"
+                } else {
+                    // hora no disponible — avisar
+                    badge.innerHTML = `⚠️ <span style="color:#B45309">El slot de las ${convertir12h(horaPreseleccionada)} no está disponible — seleccione otra hora</span>`
+                    badge.style.background = "#FFFBEB"
+                    badge.style.borderColor = "#FCD34D"
+                }
                 horaPreseleccionada = null
             }
         }
