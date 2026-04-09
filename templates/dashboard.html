@@ -1136,7 +1136,30 @@
 
         grid.appendChild(wrapper)
 
+        // Detectar colisiones: agrupar por solapamiento de tiempo
+        const grupos = []
         citasDelDia.forEach(cita => {
+            const ini = parseInt(cita.hora.replace(':',''))
+            const fin = ini + cita.duracion
+            let colocada = false
+            for (const grupo of grupos) {
+                const solapa = grupo.some(c => {
+                    const ci = parseInt(c.hora.replace(':',''))
+                    const cf = ci + c.duracion
+                    return ini < cf && fin > ci
+                })
+                if (solapa) { grupo.push(cita); colocada = true; break }
+            }
+            if (!colocada) grupos.push([cita])
+        })
+
+        citasDelDia.forEach(cita => {
+            const grupo = grupos.find(g => g.includes(cita))
+            const idx = grupo.indexOf(cita)
+            const total = grupo.length
+            const colW = total > 1 ? Math.floor(100 / total) : 100
+            const leftPct = idx * colW
+
             const [hh, mm] = cita.hora.split(":").map(Number)
             const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
@@ -1149,7 +1172,10 @@
                 bloque.style.borderColor = dc + '50'
                 bloque.style.borderLeftColor = dc
             }
-            bloque.style.cssText += `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
+            // Posición dentro del área disponible (después del label de 46px)
+            bloque.style.cssText += `top:${top}px; height:${height}px; position:absolute; cursor:pointer;`
+                + `left:calc(46px + ${leftPct}% * (100% - 50px) / 100);`
+                + `width:calc((100% - 50px) * ${colW} / 100 - 2px);`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+dc : ''}">${escaparHTML(cita.nombre)}</div>
