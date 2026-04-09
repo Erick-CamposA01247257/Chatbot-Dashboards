@@ -236,13 +236,13 @@ def init_db():
         ("Dr. García",      "#3B82F6", 10, 15, "dr.garcia",      hash_password(os.environ.get("PASS_DR_GARCIA",     "garcia123"))),
         ("Dra. Martínez",   "#8B5CF6", 11, 19, "dra.martinez",   hash_password(os.environ.get("PASS_DRA_MARTINEZ",  "martinez123"))),
         ("Dr. López",       "#F59E0B", 10, 17, "dr.lopez",       hash_password(os.environ.get("PASS_DR_LOPEZ",      "lopez123"))),
-        ("Dra. Rodríguez",  "#10B981", 12, 19, "dra.rodriguez",  hash_password(os.environ.get("PASS_DRA_RODRIGUEZ", "rodriguez123"))),
+        ("Dra. Rodríguez",  "#EC4899", 12, 19, "dra.rodriguez",  hash_password(os.environ.get("PASS_DRA_RODRIGUEZ", "rodriguez123"))),
     ]
     for doc in doctores_seed:
         cursor.execute("""
             INSERT INTO doctores (nombre, color, hora_inicio, hora_fin, username, password_hash)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash
+            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, color = EXCLUDED.color
         """, doc)
 
     conn.commit()
