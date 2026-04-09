@@ -1136,29 +1136,27 @@
 
         grid.appendChild(wrapper)
 
-        // Detectar colisiones: agrupar por solapamiento de tiempo
+        // Agrupar citas que se solapan en el tiempo
         const grupos = []
         citasDelDia.forEach(cita => {
-            const ini = parseInt(cita.hora.replace(':',''))
+            const ini = cita.hora.split(":").reduce((h,m,i) => i===0 ? +h*60 : +h + +m, 0)
             const fin = ini + cita.duracion
             let colocada = false
             for (const grupo of grupos) {
-                const solapa = grupo.some(c => {
-                    const ci = parseInt(c.hora.replace(':',''))
-                    const cf = ci + c.duracion
-                    return ini < cf && fin > ci
-                })
-                if (solapa) { grupo.push(cita); colocada = true; break }
+                if (grupo.some(c => {
+                    const ci = c.hora.split(":").reduce((h,m,i) => i===0 ? +h*60 : +h + +m, 0)
+                    return ini < ci + c.duracion && fin > ci
+                })) { grupo.push(cita); colocada = true; break }
             }
             if (!colocada) grupos.push([cita])
         })
 
+        // Crear bloques y guardar referencia para posicionarlos después
+        const bloques = []
         citasDelDia.forEach(cita => {
             const grupo = grupos.find(g => g.includes(cita))
             const idx = grupo.indexOf(cita)
             const total = grupo.length
-            const colW = total > 1 ? Math.floor(100 / total) : 100
-            const leftPct = idx * colW
 
             const [hh, mm] = cita.hora.split(":").map(Number)
             const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
@@ -1172,15 +1170,29 @@
                 bloque.style.borderColor = dc + '50'
                 bloque.style.borderLeftColor = dc
             }
-            // Posición dentro del área disponible (después del label de 46px)
-            bloque.style.cssText += `top:${top}px; height:${height}px; position:absolute; cursor:pointer;`
-                + `left:calc(46px + ${leftPct}% * (100% - 50px) / 100);`
-                + `width:calc((100% - 50px) * ${colW} / 100 - 2px);`
+            bloque.style.top = top + 'px'
+            bloque.style.height = height + 'px'
+            bloque.style.position = 'absolute'
+            bloque.style.cursor = 'pointer'
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+dc : ''}">${escaparHTML(cita.nombre)}</div>
                 <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+dc+'cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
+            bloques.push({ bloque, idx, total })
+        })
+
+        // Posicionar bloques con px exactos una vez el DOM está listo
+        requestAnimationFrame(() => {
+            const wrapperW = wrapper.offsetWidth
+            const labelW = 46
+            const marginR = 4
+            const disponible = wrapperW - labelW - marginR
+            bloques.forEach(({ bloque, idx, total }) => {
+                const colW = Math.floor(disponible / total)
+                bloque.style.left = (labelW + idx * colW) + 'px'
+                bloque.style.width = (colW - 2) + 'px'
+            })
         })
 
         const bloqueosDelDiaGrid = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
