@@ -1008,7 +1008,7 @@
         // "Día bloqueado" solo si es un bloqueo global (sin doctor específico)
         const bloqueosGlobalesDia = bloqueosDelDia.filter(b => !b.hora_inicio && !b.doctor_id)
         // Bloqueos de día completo de doctores específicos (para mostrar como aviso)
-        const bloqueosDoctorDia = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id)
+        const bloqueosDoctorDia = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id != null)
         const diaBloqueado = bloqueosGlobalesDia.length > 0
 
         const citasPorHora = {}
@@ -1204,7 +1204,7 @@
             }
 
             // Día completo bloqueado para este doctor o global
-            const diaCompleto = bloqueosDelDia.find(b => !b.hora_inicio && (!b.doctor_id || b.doctor_id === doc.id))
+            const diaCompleto = bloqueosDelDia.find(b => !b.hora_inicio && (!b.doctor_id || Number(b.doctor_id) === Number(doc.id)))
             if (diaCompleto) {
                 const overlay = document.createElement("div")
                 overlay.style.cssText = `position:absolute;inset:0;background:#FEE2E280;
@@ -1236,7 +1236,7 @@
             })
 
             // Bloqueos: globales (doctor_id null) o específicos de este doctor
-            bloqueosDelDia.filter(b => !b.doctor_id || b.doctor_id === doc.id).forEach(b => {
+            bloqueosDelDia.filter(b => !b.doctor_id || Number(b.doctor_id) === Number(doc.id)).forEach(b => {
                 if (!b.hora_inicio) return  // día completo se maneja en timeline
                 const [hh, mm] = b.hora_inicio.split(":").map(Number)
                 const [hh2, mm2] = b.hora_fin.split(":").map(Number)
