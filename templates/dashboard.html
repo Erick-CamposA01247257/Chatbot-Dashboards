@@ -1046,7 +1046,9 @@
         }
 
         // Avisos de doctores individuales con día completo bloqueado
+        // (skip own block for doctor view — already shown as red "Día bloqueado" banner)
         bloqueosDoctorDia.forEach(b => {
+            if (rolActual === 'doctor' && Number(b.doctor_id) === Number(doctorIdActual)) return
             const doc = doctoresMap[b.doctor_id]
             if (!doc) return
             const card = document.createElement("div")
