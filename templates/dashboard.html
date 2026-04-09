@@ -1118,6 +1118,108 @@
     }
 
     function renderGridVisual() {
+        const esAdmin = rolActual === 'admin' || rolActual === 'asistente'
+        const doctores = Object.values(doctoresMap)
+        if (esAdmin && doctores.length > 0) {
+            renderGridMultiDoctor(doctores)
+        } else {
+            renderGridSingle()
+        }
+    }
+
+    // Vista por columnas de doctor (solo admin/asistente)
+    function renderGridMultiDoctor(doctores) {
+        const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
+        const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
+        const grid = document.getElementById("grid-visual")
+        grid.innerHTML = ""
+
+        const LABEL_W = 46
+
+        // ── Header con nombre de cada doctor ──
+        const header = document.createElement("div")
+        header.style.cssText = `display:flex; margin-bottom:6px; margin-left:${LABEL_W}px; gap:2px`
+        doctores.forEach(doc => {
+            const h = document.createElement("div")
+            h.style.cssText = `flex:1; text-align:center; font-size:10px; font-weight:600;
+                color:${doc.color}; background:${doc.color}18; border-radius:6px;
+                padding:5px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis`
+            h.textContent = doc.nombre
+            header.appendChild(h)
+        })
+        grid.appendChild(header)
+
+        // ── Wrapper flex: columna de horas + columnas de doctores ──
+        const wrapper = document.createElement("div")
+        wrapper.style.cssText = `display:flex; gap:2px`
+
+        // Columna de horas
+        const horaCol = document.createElement("div")
+        horaCol.style.cssText = `width:${LABEL_W}px; flex-shrink:0`
+        for (let h = HORA_INICIO; h < HORA_FIN; h++) {
+            const lbl = document.createElement("div")
+            lbl.style.cssText = `height:${ALTURA_HORA}px; display:flex; align-items:flex-start;
+                justify-content:flex-end; padding-right:6px; padding-top:2px`
+            lbl.innerHTML = `<span style="font-size:10px;color:var(--texto-muted);font-weight:500">${h}:00</span>`
+            horaCol.appendChild(lbl)
+        }
+        wrapper.appendChild(horaCol)
+
+        // Una columna por doctor
+        doctores.forEach(doc => {
+            const col = document.createElement("div")
+            col.style.cssText = `flex:1; position:relative; border-left:1px solid var(--borde)`
+
+            // Líneas de hora
+            for (let h = HORA_INICIO; h < HORA_FIN; h++) {
+                const line = document.createElement("div")
+                line.style.cssText = `height:${ALTURA_HORA}px; border-top:1px solid var(--borde)`
+                col.appendChild(line)
+            }
+
+            // Citas de este doctor
+            citasDelDia.filter(c => c.doctor_id === doc.id).forEach(cita => {
+                const [hh, mm] = cita.hora.split(":").map(Number)
+                const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
+                const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
+                const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
+                const bloque = document.createElement("div")
+                bloque.className = `grid-bloque ${claseGrid}`
+                if (!claseGrid) {
+                    bloque.style.background = doc.color + '18'
+                    bloque.style.borderColor = doc.color + '50'
+                    bloque.style.borderLeftColor = doc.color
+                }
+                bloque.style.cssText += `top:${top}px; height:${height}px; left:2px; right:2px; position:absolute; cursor:pointer`
+                bloque.onclick = () => abrirModal(cita.id)
+                bloque.innerHTML = `
+                    <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+doc.color : ''}">${escaparHTML(cita.nombre)}</div>
+                    <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+doc.color+'cc' : ''}">${convertir12h(cita.hora)} · ${cita.duracion}m</div>`
+                col.appendChild(bloque)
+            })
+
+            // Bloqueos en esta columna
+            bloqueosDelDia.forEach(b => {
+                const [hh, mm] = b.hora_inicio.split(":").map(Number)
+                const [hh2, mm2] = b.hora_fin.split(":").map(Number)
+                const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
+                const durMin = (hh2 * 60 + mm2) - (hh * 60 + mm)
+                const height = Math.max((durMin / 60) * ALTURA_HORA - 4, 20)
+                const bloque = document.createElement("div")
+                bloque.className = "grid-bloque bloqueado"
+                bloque.style.cssText = `top:${top}px; height:${height}px; left:2px; right:2px; position:absolute`
+                bloque.innerHTML = `<div class="grid-bloque-nombre">🚫</div>`
+                col.appendChild(bloque)
+            })
+
+            wrapper.appendChild(col)
+        })
+
+        grid.appendChild(wrapper)
+    }
+
+    // Vista simple (doctor individual o sin mapa de doctores)
+    function renderGridSingle() {
         const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
         const grid = document.getElementById("grid-visual")
         grid.innerHTML = ""
@@ -1133,31 +1235,9 @@
                 <div class="grid-hora-linea"></div>`
             wrapper.appendChild(fila)
         }
-
         grid.appendChild(wrapper)
 
-        // Agrupar citas que se solapan en el tiempo
-        const grupos = []
         citasDelDia.forEach(cita => {
-            const ini = cita.hora.split(":").reduce((h,m,i) => i===0 ? +h*60 : +h + +m, 0)
-            const fin = ini + cita.duracion
-            let colocada = false
-            for (const grupo of grupos) {
-                if (grupo.some(c => {
-                    const ci = c.hora.split(":").reduce((h,m,i) => i===0 ? +h*60 : +h + +m, 0)
-                    return ini < ci + c.duracion && fin > ci
-                })) { grupo.push(cita); colocada = true; break }
-            }
-            if (!colocada) grupos.push([cita])
-        })
-
-        // Crear bloques y guardar referencia para posicionarlos después
-        const bloques = []
-        citasDelDia.forEach(cita => {
-            const grupo = grupos.find(g => g.includes(cita))
-            const idx = grupo.indexOf(cita)
-            const total = grupo.length
-
             const [hh, mm] = cita.hora.split(":").map(Number)
             const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
@@ -1170,29 +1250,12 @@
                 bloque.style.borderColor = dc + '50'
                 bloque.style.borderLeftColor = dc
             }
-            bloque.style.top = top + 'px'
-            bloque.style.height = height + 'px'
-            bloque.style.position = 'absolute'
-            bloque.style.cursor = 'pointer'
+            bloque.style.cssText += `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+dc : ''}">${escaparHTML(cita.nombre)}</div>
                 <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+dc+'cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
-            bloques.push({ bloque, idx, total })
-        })
-
-        // Posicionar bloques con px exactos una vez el DOM está listo
-        requestAnimationFrame(() => {
-            const wrapperW = wrapper.offsetWidth
-            const labelW = 46
-            const marginR = 4
-            const disponible = wrapperW - labelW - marginR
-            bloques.forEach(({ bloque, idx, total }) => {
-                const colW = Math.floor(disponible / total)
-                bloque.style.left = (labelW + idx * colW) + 'px'
-                bloque.style.width = (colW - 2) + 'px'
-            })
         })
 
         const bloqueosDelDiaGrid = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
