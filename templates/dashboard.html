@@ -1005,7 +1005,11 @@
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
         const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
-        const diaBloqueado = bloqueosDelDia.some(b => !b.hora_inicio)
+        // "Día bloqueado" solo si es un bloqueo global (sin doctor específico)
+        const bloqueosGlobalesDia = bloqueosDelDia.filter(b => !b.hora_inicio && !b.doctor_id)
+        // Bloqueos de día completo de doctores específicos (para mostrar como aviso)
+        const bloqueosDoctorDia = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id)
+        const diaBloqueado = bloqueosGlobalesDia.length > 0
 
         const citasPorHora = {}
         citasDelDia.forEach(c => {
@@ -1014,8 +1018,9 @@
             citasPorHora[h].push(c)
         })
 
+        // Solo bloqueos de hora globales o del doctor actual (para vista individual)
         const bloqueosPorHora = {}
-        bloqueosDelDia.filter(b => b.hora_inicio).forEach(b => {
+        bloqueosDelDia.filter(b => b.hora_inicio && (!b.doctor_id || b.doctor_id === doctorIdActual)).forEach(b => {
             const h = parseInt(b.hora_inicio.split(":")[0])
             if (!bloqueosPorHora[h]) bloqueosPorHora[h] = []
             bloqueosPorHora[h].push(b)
@@ -1025,7 +1030,7 @@
         timeline.innerHTML = ""
 
         if (diaBloqueado) {
-            const bloqueo = bloqueosDelDia.find(b => !b.hora_inicio)
+            const bloqueo = bloqueosGlobalesDia[0]
             const card = document.createElement("div")
             card.style.cssText = "background:#FFF5F5;border:1px solid #FECACA;border-left:4px solid #EF4444;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"
             card.innerHTML = `
@@ -1036,6 +1041,21 @@
                 <button onclick="eliminarBloqueo(${bloqueo.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:12px;color:#DC2626;cursor:pointer">Quitar</button>`
             timeline.appendChild(card)
         }
+
+        // Avisos de doctores individuales con día completo bloqueado
+        bloqueosDoctorDia.forEach(b => {
+            const doc = doctoresMap[b.doctor_id]
+            if (!doc) return
+            const card = document.createElement("div")
+            card.style.cssText = `background:${doc.color}10;border:1px solid ${doc.color}40;border-left:4px solid ${doc.color};border-radius:10px;padding:10px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center`
+            card.innerHTML = `
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:${doc.color}">🚫 ${escaparHTML(doc.nombre)} — sin horario hoy</div>
+                    ${b.motivo ? `<div style="font-size:12px;color:${doc.color}cc;margin-top:2px">${escaparHTML(b.motivo)}</div>` : ''}
+                </div>
+                <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid ${doc.color}40;border-radius:7px;padding:5px 10px;font-size:12px;color:${doc.color};cursor:pointer">Quitar</button>`
+            timeline.appendChild(card)
+        })
 
         for (let h = HORA_INICIO; h < HORA_FIN; h++) {
             const citas = citasPorHora[h]
@@ -1181,6 +1201,17 @@
                 const line = document.createElement("div")
                 line.style.cssText = `height:${ALTURA_HORA}px; border-top:1px solid var(--borde)`
                 col.appendChild(line)
+            }
+
+            // Día completo bloqueado para este doctor o global
+            const diaCompleto = bloqueosDelDia.find(b => !b.hora_inicio && (!b.doctor_id || b.doctor_id === doc.id))
+            if (diaCompleto) {
+                const overlay = document.createElement("div")
+                overlay.style.cssText = `position:absolute;inset:0;background:#FEE2E280;
+                    border:1px solid #FECACA;display:flex;align-items:center;
+                    justify-content:center;z-index:2;border-radius:2px`
+                overlay.innerHTML = `<span style="font-size:11px;font-weight:600;color:#DC2626;writing-mode:vertical-lr;transform:rotate(180deg)">🚫 Bloqueado</span>`
+                col.appendChild(overlay)
             }
 
             // Citas de este doctor
