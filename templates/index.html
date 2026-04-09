@@ -982,6 +982,7 @@ async function confirmarCita() {
     document.getElementById("wizard-card")?.remove()
 
     if (res.ok) {
+        const fechaConfirmada = estado.fecha
         citaAgendada = true
         document.querySelector(".btn-agendar-fijo")?.remove()
         document.querySelectorAll(".btn-agendar-chat").forEach(b => b.remove())
@@ -989,14 +990,42 @@ async function confirmarCita() {
         inp.disabled = true
         inp.placeholder = "Chat cerrado — cita ya agendada"
         document.querySelector(".btn-enviar").disabled = true
-        const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
+        const fechaLegible = new Date(fechaConfirmada + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
         agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en Dentales!`, "bot")
+
+        // Botón para agendar a otro familiar
+        const chat = document.getElementById("chat")
+        const btnFamiliar = document.createElement("div")
+        btnFamiliar.id = "btn-familiar-wrap"
+        btnFamiliar.style.cssText = "padding:4px 16px 12px;display:flex;justify-content:flex-end"
+        btnFamiliar.innerHTML = `<button onclick="agendarOtroFamiliar('${fechaConfirmada}')" style="background:#F0F9FF;border:1.5px solid #BAE6FD;color:#0369A1;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer">¿Desea agendar a otro familiar el mismo día? →</button>`
+        chat.appendChild(btnFamiliar)
+        chat.scrollTop = chat.scrollHeight
     } else {
         agregarMensaje(`Lo sentimos, ese horario ya no está disponible. Por favor seleccione otro.`, "bot")
         setTimeout(iniciarWizard, 1000)
     }
+}
+
+function agendarOtroFamiliar(fechaPrevia) {
+    document.getElementById("btn-familiar-wrap")?.remove()
+    citaAgendada = false
+    const inp = document.getElementById("input")
+    inp.disabled = false
+    inp.placeholder = "Escribe un mensaje..."
+    document.querySelector(".btn-enviar").disabled = false
+    const fechaDt = new Date(fechaPrevia + "T12:00:00")
+    estado = {
+        paso: 2,
+        año: fechaDt.getFullYear(),
+        mes: fechaDt.getMonth(),
+        fecha: fechaPrevia,
+        servicio: null,
+        hora: null,
+    }
+    renderWizard()
 }
 
 function convertir12h(hora24) {

@@ -411,6 +411,17 @@
         }
         .btn-modal-eliminar:hover { background: #FEE2E2; }
 
+        .btn-modal-secundario {
+            flex: 1; padding: 11px;
+            background: #F0F9FF; color: #0369A1;
+            border: 1px solid #BAE6FD; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-modal-secundario:hover { background: #E0F2FE; }
+        .btn-modal-secundario:disabled { opacity: 0.5; cursor: default; }
+
         /* ── Modal nueva cita ── */
         .form-campo { margin-bottom: 14px; }
         .form-campo label {
@@ -751,8 +762,12 @@
             </select>
             <div class="form-error" id="nc-error"></div>
         </div>
+        <div id="nc-familiar-toast" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 12px;font-size:13px;color:#15803D;margin-bottom:8px;font-weight:500">
+            ✅ Cita guardada — agrega otro familiar a continuación
+        </div>
         <div class="modal-acciones">
             <button class="btn-modal-confirmar" id="btn-nc-guardar" onclick="guardarNuevaCita()">Guardar cita</button>
+            <button class="btn-modal-secundario" id="btn-nc-agregar-otro" onclick="guardarNuevaCita({ keepOpen: true })">+ Agregar familiar</button>
             <button class="btn-modal-eliminar" onclick="cerrarNuevaCitaDirecto()">Cancelar</button>
         </div>
     </div>
@@ -1440,6 +1455,7 @@
 
     function cerrarNuevaCitaDirecto() {
         document.getElementById("modal-nueva-overlay").classList.remove("visible")
+        document.getElementById("nc-familiar-toast").style.display = "none"
     }
 
     async function cargarSlotsNuevaCita() {
@@ -1475,7 +1491,8 @@
         }
     }
 
-    async function guardarNuevaCita() {
+    async function guardarNuevaCita(opts = {}) {
+        const keepOpen = opts.keepOpen === true
         const nombre = document.getElementById("nc-nombre").value.trim()
         const telefono = document.getElementById("nc-telefono").value.replace(/\D/g, "")
         const servicio = document.getElementById("nc-servicio").value
@@ -1497,7 +1514,9 @@
         }
 
         const btn = document.getElementById("btn-nc-guardar")
+        const btnOtro = document.getElementById("btn-nc-agregar-otro")
         btn.disabled = true
+        btnOtro.disabled = true
         btn.textContent = "Guardando..."
 
         const res = await fetch("/api/agendar-dashboard", {
@@ -1507,13 +1526,31 @@
         })
 
         if (res.ok) {
-            cerrarNuevaCitaDirecto()
             fechaSeleccionada = fecha
             await cargarCitas()
+            if (keepOpen) {
+                // Limpiar campos pero mantener fecha — para agendar otro familiar
+                document.getElementById("nc-nombre").value = ""
+                document.getElementById("nc-telefono").value = ""
+                const selectServicio = document.getElementById("nc-servicio")
+                selectServicio.innerHTML = `<option value="">Seleccione un servicio</option>` +
+                    Array.from(selectServicio.options).slice(1).map(o => o.outerHTML).join("")
+                selectServicio.value = ""
+                document.getElementById("nc-hora").innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
+                document.getElementById("nc-familiar-toast").style.display = "block"
+                btn.disabled = false
+                btnOtro.disabled = false
+                btn.textContent = "Guardar cita"
+                horaPreseleccionada = null
+                document.getElementById("nc-hora-badge").style.display = "none"
+            } else {
+                cerrarNuevaCitaDirecto()
+            }
         } else {
             errorEl.textContent = "Ese horario ya no está disponible."
             errorEl.classList.add("visible")
             btn.disabled = false
+            btnOtro.disabled = false
             btn.textContent = "Guardar cita"
             await cargarSlotsNuevaCita()
         }
