@@ -684,6 +684,7 @@ function mostrarTyping() {
 }
 
 async function enviar() {
+    if (citaAgendada) return
     const input = document.getElementById("input")
     const texto = input.value.trim()
     if (!texto) return
@@ -984,6 +985,10 @@ async function confirmarCita() {
         citaAgendada = true
         document.querySelector(".btn-agendar-fijo")?.remove()
         document.querySelectorAll(".btn-agendar-chat").forEach(b => b.remove())
+        const inp = document.getElementById("input")
+        inp.disabled = true
+        inp.placeholder = "Chat cerrado — cita ya agendada"
+        document.querySelector(".btn-enviar").disabled = true
         const fechaLegible = new Date(estado.fecha + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
