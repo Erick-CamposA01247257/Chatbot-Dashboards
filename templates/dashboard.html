@@ -1647,6 +1647,7 @@
         }
 
         const btn = document.getElementById("btn-bl-guardar")
+        if (btn.disabled) return   // evitar doble submit
         btn.disabled = true
         btn.textContent = "Guardando..."
 
