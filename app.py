@@ -781,6 +781,11 @@ async def api_agendar(request: Request, cita: CitaRequest, background_tasks: Bac
     token = guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion,
                          cita.telefono, confirmada=auto, doctor_id=doctor_id)
     background_tasks.add_task(notificar_doctora, cita.nombre, cita.servicio, cita.fecha, cita.hora)
+    if auto and cita.telefono:
+        background_tasks.add_task(
+            enviar_whatsapp_confirmacion,
+            cita.telefono, cita.nombre, cita.servicio, cita.fecha, cita.hora, token
+        )
     return JSONResponse(content={"status": "ok", "mensaje": "Cita registrada correctamente"})
 
 @app.post("/api/agendar-dashboard")
