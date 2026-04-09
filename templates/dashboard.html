@@ -939,14 +939,18 @@
     const diasCortos = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
 
     async function cargarCitas() {
-        const [resCitas, resBloqueos] = await Promise.all([
-            fetch("/api/citas"),
-            fetch("/api/bloqueos")
-        ])
-        const dataCitas = await resCitas.json()
-        const dataBloqueos = await resBloqueos.json()
-        todasLasCitas = dataCitas.citas
-        todosLosBloqueos = dataBloqueos.bloqueos
+        try {
+            const [resCitas, resBloqueos] = await Promise.all([
+                fetch("/api/citas"),
+                fetch("/api/bloqueos")
+            ])
+            const dataCitas = await resCitas.json()
+            const dataBloqueos = await resBloqueos.json()
+            todasLasCitas = Array.isArray(dataCitas.citas) ? dataCitas.citas : todasLasCitas
+            todosLosBloqueos = Array.isArray(dataBloqueos.bloqueos) ? dataBloqueos.bloqueos : todosLosBloqueos
+        } catch(e) {
+            console.error("[cargarCitas]", e)
+        }
         render()
     }
 
@@ -984,7 +988,7 @@
         const fechaStr = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
         document.getElementById("header-fecha").innerHTML = `${prefijo}<strong>${fechaStr}</strong>`
 
-        const citasDelDia = todasLasCitas.filter(c => c.fecha === fechaSeleccionada)
+        const citasDelDia = (Array.isArray(todasLasCitas) ? todasLasCitas : []).filter(c => c.fecha === fechaSeleccionada)
         document.getElementById("badge-citas").textContent = `${citasDelDia.length} cita${citasDelDia.length !== 1 ? 's' : ''} hoy`
 
         const diaStr = fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
@@ -992,6 +996,7 @@
     }
 
     function getCitasFiltradas() {
+        if (!Array.isArray(todasLasCitas)) return []
         const filtroId = document.getElementById("filtro-doctor")?.value
         return todasLasCitas.filter(c => {
             if (filtroId && String(c.doctor_id) !== String(filtroId)) return false
