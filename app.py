@@ -231,19 +231,21 @@ def init_db():
         )
     """)
 
-    # Seed doctores de prueba — contraseñas desde env vars con fallback
+    # Seed doctores — solo se inserta/actualiza si la variable de entorno de contraseña está definida
     doctores_seed = [
-        ("Dr. García",      "#3B82F6", 10, 15, "dr.garcia",      hash_password(os.environ.get("PASS_DR_GARCIA",     "garcia123"))),
-        ("Dra. Martínez",   "#8B5CF6", 11, 19, "dra.martinez",   hash_password(os.environ.get("PASS_DRA_MARTINEZ",  "martinez123"))),
-        ("Dr. López",       "#F59E0B", 10, 17, "dr.lopez",       hash_password(os.environ.get("PASS_DR_LOPEZ",      "lopez123"))),
-        ("Dra. Rodríguez",  "#EC4899", 12, 19, "dra.rodriguez",  hash_password(os.environ.get("PASS_DRA_RODRIGUEZ", "rodriguez123"))),
+        ("Dr. García",      "#3B82F6", 10, 15, "dr.garcia",      os.environ.get("PASS_DR_GARCIA")),
+        ("Dra. Martínez",   "#8B5CF6", 11, 19, "dra.martinez",   os.environ.get("PASS_DRA_MARTINEZ")),
+        ("Dr. López",       "#F59E0B", 10, 17, "dr.lopez",       os.environ.get("PASS_DR_LOPEZ")),
+        ("Dra. Rodríguez",  "#EC4899", 12, 19, "dra.rodriguez",  os.environ.get("PASS_DRA_RODRIGUEZ")),
     ]
-    for doc in doctores_seed:
+    for nombre, color, h_ini, h_fin, username, password in doctores_seed:
+        if not password:
+            continue  # No sedar doctores sin contraseña configurada
         cursor.execute("""
             INSERT INTO doctores (nombre, color, hora_inicio, hora_fin, username, password_hash)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, color = EXCLUDED.color
-        """, doc)
+        """, (nombre, color, h_ini, h_fin, username, hash_password(password)))
 
     conn.commit()
     conn.close()
