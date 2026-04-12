@@ -1106,12 +1106,20 @@
         segmentos.forEach((seg, segIdx) => {
             // Separador de descanso entre segmentos
             if (segIdx > 0) {
+                const breakStart = convertir12h(segmentos[segIdx-1][1])
+                const breakEnd   = convertir12h(seg[0])
                 const sep = document.createElement("div")
-                sep.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;margin:2px 0"
+                sep.style.cssText = "display:flex;align-items:center;gap:10px;padding:10px 0;margin:0"
                 sep.innerHTML = `
-                    <div style="flex:1;border-top:1px dashed var(--borde)"></div>
-                    <span style="font-size:10px;color:var(--texto-muted);font-weight:500;letter-spacing:.4px">DESCANSO</span>
-                    <div style="flex:1;border-top:1px dashed var(--borde)"></div>`
+                    <div style="flex:1;border-top:1px dashed #E2E8F0"></div>
+                    <div style="display:inline-flex;align-items:center;gap:5px;background:#F8FAFC;
+                        border:1px solid #E2E8F0;border-radius:20px;padding:3px 11px 3px 8px;
+                        font-size:11px;color:#94A3B8;font-weight:500;letter-spacing:.1px;
+                        box-shadow:0 1px 2px rgba(0,0,0,.04)">
+                        <span style="font-size:12px">☕</span>
+                        <span>Descanso · ${breakStart} – ${breakEnd}</span>
+                    </div>
+                    <div style="flex:1;border-top:1px dashed #E2E8F0"></div>`
                 timeline.appendChild(sep)
             }
             const startH = Math.floor(strToMin(seg[0]) / 60)
@@ -1218,13 +1226,20 @@
         // Filas de horas por segmento, con separador de descanso entre ellos
         segmentos.forEach((seg, segIdx) => {
             if (segIdx > 0) {
+                const breakStart = convertir12h(segmentos[segIdx-1][1])
+                const breakEnd   = convertir12h(seg[0])
                 const sep = document.createElement("div")
                 sep.style.cssText = `height:${BREAK_HEIGHT}px; display:flex; align-items:center;
-                    padding-left:50px; background:repeating-linear-gradient(
-                        45deg, transparent, transparent 4px,
-                        var(--borde, #e2e8f0) 4px, var(--borde, #e2e8f0) 5px)`
-                sep.innerHTML = `<span style="font-size:9px;color:var(--texto-muted);font-weight:600;
-                    letter-spacing:.6px;background:white;padding:0 6px">DESCANSO</span>`
+                    justify-content:center; background:#FAFBFC;
+                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;`
+                sep.innerHTML = `
+                    <div style="display:inline-flex;align-items:center;gap:5px;background:white;
+                        border:1px solid #E2E8F0;border-radius:20px;padding:3px 12px 3px 9px;
+                        font-size:10px;color:#94A3B8;font-weight:500;letter-spacing:.1px;
+                        box-shadow:0 1px 2px rgba(0,0,0,.04)">
+                        <span style="font-size:11px">☕</span>
+                        <span>Descanso · ${breakStart} – ${breakEnd}</span>
+                    </div>`
                 wrapper.appendChild(sep)
             }
             const startH = Math.floor(strToMin(seg[0]) / 60)
