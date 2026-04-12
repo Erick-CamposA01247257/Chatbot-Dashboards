@@ -1347,7 +1347,7 @@
 
     function abrirNuevaCitaEnSlot(e, fecha, doctorId = null) {
         if (e.target.closest(".grid-bloque")) return
-        const offsetY = e.offsetY !== undefined ? e.offsetY : e.clientY - e.currentTarget.getBoundingClientRect().top
+        const offsetY = e.clientY - e.currentTarget.getBoundingClientRect().top
         const hora = offsetToTime(offsetY, getSegmentos(fecha))
         abrirNuevaCita({ fecha, hora, doctorId })
     }
