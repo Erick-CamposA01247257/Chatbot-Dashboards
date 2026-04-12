@@ -927,6 +927,63 @@
     const HORA_INICIO = 9
     const HORA_FIN = 18
     const ALTURA_HORA = 72
+    const BREAK_HEIGHT = 28  // px del separador visual de descanso en el grid
+
+    // Horario por día de semana (0=Lun…5=Sáb, 6=Dom) — debe coincidir con HORARIO en app.py
+    const HORARIO_JS = {
+        0: [["10:00","13:00"],["15:00","18:00"]],
+        1: [["10:00","13:00"],["15:00","18:00"]],
+        2: [["10:00","13:00"],["15:00","18:00"]],
+        3: [["10:00","13:00"],["15:00","18:00"]],
+        4: [["10:00","13:00"],["15:00","18:00"]],
+        5: [["09:30","14:00"]],
+        6: [],
+    }
+
+    function getSegmentos(fecha) {
+        const jsDay = new Date(fecha + "T12:00:00").getDay()  // 0=Dom…6=Sáb
+        const pyDay = jsDay === 0 ? 6 : jsDay - 1             // 0=Lun…6=Dom
+        return HORARIO_JS[pyDay] || []
+    }
+
+    function strToMin(s) {
+        const [h, m] = s.split(":").map(Number)
+        return h * 60 + m
+    }
+
+    // Convierte "HH:MM" → píxeles desde el top del grid (respeta el break)
+    function timeToOffset(horaStr, segmentos) {
+        const tMin = strToMin(horaStr)
+        let offset = 0
+        for (let i = 0; i < segmentos.length; i++) {
+            const segStart = strToMin(segmentos[i][0])
+            const segEnd   = strToMin(segmentos[i][1])
+            if (tMin >= segStart && tMin < segEnd) {
+                return offset + (tMin - segStart) / 60 * ALTURA_HORA
+            }
+            offset += (segEnd - segStart) / 60 * ALTURA_HORA
+            if (i < segmentos.length - 1) offset += BREAK_HEIGHT
+        }
+        return offset
+    }
+
+    // Convierte offsetY del click → "HH:MM" (snap a 30 min)
+    function offsetToTime(offsetY, segmentos) {
+        let remaining = offsetY
+        for (let i = 0; i < segmentos.length; i++) {
+            const segStart  = strToMin(segmentos[i][0])
+            const segEnd    = strToMin(segmentos[i][1])
+            const segHeight = (segEnd - segStart) / 60 * ALTURA_HORA
+            if (remaining <= segHeight || i === segmentos.length - 1) {
+                const totalMin = segStart + (remaining / ALTURA_HORA * 60)
+                const h = Math.floor(totalMin / 60)
+                const m = Math.floor((totalMin % 60) / 30) * 30
+                return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`
+            }
+            remaining -= segHeight + BREAK_HEIGHT
+        }
+        return segmentos[0]?.[0] || "10:00"
+    }
 
     let rolActual = null
     let usuarioActual = null
@@ -1045,49 +1102,64 @@
             timeline.appendChild(card)
         }
 
-        for (let h = HORA_INICIO; h < HORA_FIN; h++) {
-            const citas = citasPorHora[h]
-            const bloqs = bloqueosPorHora[h]
-            const tieneAlgo = citas || bloqs
-            const slot = document.createElement("div")
-            slot.className = "timeline-slot"
-            slot.innerHTML = `
-                <div class="timeline-hora-col">
-                    <span class="timeline-hora">${h}:00</span>
-                </div>
-                <div class="timeline-linea-col">
-                    <div class="timeline-punto ${tieneAlgo ? 'activo' : ''}"></div>
-                    <div class="timeline-linea"></div>
-                </div>
-                <div class="timeline-content">
-                    ${bloqs ? bloqs.map(b => `
-                        <div class="cita-card bloqueado" style="display:flex;justify-content:space-between;align-items:center">
-                            <div>
-                                <div class="cita-card-header"><div class="cita-paciente">🚫 Bloqueado</div><div class="cita-hora-badge">${b.hora_inicio} – ${b.hora_fin}</div></div>
-                                ${b.motivo ? `<div class="cita-detalle">${escaparHTML(b.motivo)}</div>` : ''}
-                            </div>
-                            <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:11px;color:#DC2626;cursor:pointer;flex-shrink:0;margin-left:8px">Quitar</button>
-                        </div>`).join("") : ''}
-                    ${citas ? citas.map(c => {
-                        const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
-                        return `
-                        <div class="cita-card ${clase}" id="card-${c.id}">
-                            <div class="cita-card-header" style="display:flex;align-items:center">
-                                ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
-                                <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
-                                    <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
+        const segmentos = getSegmentos(fechaSeleccionada)
+        segmentos.forEach((seg, segIdx) => {
+            // Separador de descanso entre segmentos
+            if (segIdx > 0) {
+                const sep = document.createElement("div")
+                sep.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;margin:2px 0"
+                sep.innerHTML = `
+                    <div style="flex:1;border-top:1px dashed var(--borde)"></div>
+                    <span style="font-size:10px;color:var(--texto-muted);font-weight:500;letter-spacing:.4px">DESCANSO</span>
+                    <div style="flex:1;border-top:1px dashed var(--borde)"></div>`
+                timeline.appendChild(sep)
+            }
+            const startH = Math.floor(strToMin(seg[0]) / 60)
+            const endH   = Math.ceil(strToMin(seg[1]) / 60)
+            for (let h = startH; h < endH; h++) {
+                const citas = citasPorHora[h]
+                const bloqs = bloqueosPorHora[h]
+                const tieneAlgo = citas || bloqs
+                const slot = document.createElement("div")
+                slot.className = "timeline-slot"
+                slot.innerHTML = `
+                    <div class="timeline-hora-col">
+                        <span class="timeline-hora">${h}:00</span>
+                    </div>
+                    <div class="timeline-linea-col">
+                        <div class="timeline-punto ${tieneAlgo ? 'activo' : ''}"></div>
+                        <div class="timeline-linea"></div>
+                    </div>
+                    <div class="timeline-content">
+                        ${bloqs ? bloqs.map(b => `
+                            <div class="cita-card bloqueado" style="display:flex;justify-content:space-between;align-items:center">
+                                <div>
+                                    <div class="cita-card-header"><div class="cita-paciente">🚫 Bloqueado</div><div class="cita-hora-badge">${b.hora_inicio} – ${b.hora_fin}</div></div>
+                                    ${b.motivo ? `<div class="cita-detalle">${escaparHTML(b.motivo)}</div>` : ''}
                                 </div>
-                            </div>
-                            <div class="cita-detalle" onclick="abrirModal(${c.id})">
-                                <span>${escaparHTML(c.servicio)}</span>
-                                <div class="cita-detalle-sep"></div>
-                                <span>${c.duracion} min</span>
-                            </div>
-                        </div>`}).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
-                </div>`
-            timeline.appendChild(slot)
-        }
+                                <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:11px;color:#DC2626;cursor:pointer;flex-shrink:0;margin-left:8px">Quitar</button>
+                            </div>`).join("") : ''}
+                        ${citas ? citas.map(c => {
+                            const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
+                            return `
+                            <div class="cita-card ${clase}" id="card-${c.id}">
+                                <div class="cita-card-header" style="display:flex;align-items:center">
+                                    ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
+                                    <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
+                                        <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
+                                        <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
+                                    </div>
+                                </div>
+                                <div class="cita-detalle" onclick="abrirModal(${c.id})">
+                                    <span>${escaparHTML(c.servicio)}</span>
+                                    <div class="cita-detalle-sep"></div>
+                                    <span>${c.duracion} min</span>
+                                </div>
+                            </div>`}).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
+                    </div>`
+                timeline.appendChild(slot)
+            }
+        })
 
         if (citasDelDia.length === 0) {
             const empty = document.createElement("div")
@@ -1135,6 +1207,7 @@
     // Vista simple — única vista
     function renderGridSingle() {
         const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
+        const segmentos = getSegmentos(fechaSeleccionada)
         const grid = document.getElementById("grid-visual")
         grid.innerHTML = ""
 
@@ -1142,15 +1215,31 @@
         wrapper.style.cssText = "position:relative; cursor:cell"
         wrapper.onclick = e => abrirNuevaCitaEnSlot(e, fechaSeleccionada, doctorIdActual)
 
-        for (let h = HORA_INICIO; h < HORA_FIN; h++) {
-            const fila = document.createElement("div")
-            fila.className = "grid-fila-hora"
-            fila.innerHTML = `
-                <div class="grid-hora-label">${h}:00</div>
-                <div class="grid-hora-linea"></div>`
-            wrapper.appendChild(fila)
-        }
-        // Overlay de día completo bloqueado (doctor individual o global)
+        // Filas de horas por segmento, con separador de descanso entre ellos
+        segmentos.forEach((seg, segIdx) => {
+            if (segIdx > 0) {
+                const sep = document.createElement("div")
+                sep.style.cssText = `height:${BREAK_HEIGHT}px; display:flex; align-items:center;
+                    padding-left:50px; background:repeating-linear-gradient(
+                        45deg, transparent, transparent 4px,
+                        var(--borde, #e2e8f0) 4px, var(--borde, #e2e8f0) 5px)`
+                sep.innerHTML = `<span style="font-size:9px;color:var(--texto-muted);font-weight:600;
+                    letter-spacing:.6px;background:white;padding:0 6px">DESCANSO</span>`
+                wrapper.appendChild(sep)
+            }
+            const startH = Math.floor(strToMin(seg[0]) / 60)
+            const endH   = Math.ceil(strToMin(seg[1]) / 60)
+            for (let h = startH; h < endH; h++) {
+                const fila = document.createElement("div")
+                fila.className = "grid-fila-hora"
+                fila.innerHTML = `
+                    <div class="grid-hora-label">${h}:00</div>
+                    <div class="grid-hora-linea"></div>`
+                wrapper.appendChild(fila)
+            }
+        })
+
+        // Overlay de día completo bloqueado
         const diaCompletoSingle = todosLosBloqueos.find(b =>
             b.fecha === fechaSeleccionada && !b.hora_inicio
         )
@@ -1165,9 +1254,9 @@
 
         grid.appendChild(wrapper)
 
+        // Citas — posicionadas con timeToOffset para respetar el break
         citasDelDia.forEach(cita => {
-            const [hh, mm] = cita.hora.split(":").map(Number)
-            const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
+            const top    = timeToOffset(cita.hora, segmentos)
             const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
             const bloque = document.createElement("div")
             const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
@@ -1185,14 +1274,10 @@
             wrapper.appendChild(bloque)
         })
 
-        const bloqueosDelDiaGrid = todosLosBloqueos.filter(b =>
-            b.fecha === fechaSeleccionada && b.hora_inicio
-        )
-        bloqueosDelDiaGrid.forEach(b => {
-            const [hh, mm] = b.hora_inicio.split(":").map(Number)
-            const [hh2, mm2] = b.hora_fin.split(":").map(Number)
-            const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
-            const durMin = (hh2 * 60 + mm2) - (hh * 60 + mm)
+        // Bloqueos de hora — también posicionados con timeToOffset
+        todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio).forEach(b => {
+            const top    = timeToOffset(b.hora_inicio, segmentos)
+            const durMin = strToMin(b.hora_fin) - strToMin(b.hora_inicio)
             const height = Math.max((durMin / 60) * ALTURA_HORA - 4, 20)
             const bloque = document.createElement("div")
             bloque.className = "grid-bloque bloqueado"
@@ -1246,12 +1331,9 @@
     let horaPreseleccionada = null
 
     function abrirNuevaCitaEnSlot(e, fecha, doctorId = null) {
-        if (e.target.closest(".grid-bloque")) return  // clic en cita existente — ignorar
+        if (e.target.closest(".grid-bloque")) return
         const offsetY = e.offsetY !== undefined ? e.offsetY : e.clientY - e.currentTarget.getBoundingClientRect().top
-        const horaDecimal = HORA_INICIO + offsetY / ALTURA_HORA
-        const horaEntera = Math.floor(horaDecimal)
-        const minutos = Math.floor((horaDecimal - horaEntera) * 2) * 30  // snap a 0 o 30
-        const hora = `${String(horaEntera).padStart(2,"0")}:${String(minutos).padStart(2,"0")}`
+        const hora = offsetToTime(offsetY, getSegmentos(fecha))
         abrirNuevaCita({ fecha, hora, doctorId })
     }
 
