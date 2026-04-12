@@ -924,8 +924,8 @@
             .replace(/'/g, '&#39;')
     }
 
-    const HORA_INICIO = 10
-    const HORA_FIN = 19
+    const HORA_INICIO = 9
+    const HORA_FIN = 18
     const ALTURA_HORA = 72
 
     let rolActual = null
@@ -1265,13 +1265,14 @@
 
         const selectServicio = document.getElementById("nc-servicio")
         const servicios = [
-            { nombre: "Limpieza dental", dur: 30 },
-            { nombre: "Revisión y diagnóstico general", dur: 30 },
-            { nombre: "Blanqueamiento dental", dur: 60 },
-            { nombre: "Resinas y restauraciones", dur: 60 },
+            { nombre: "Limpiezas dentales", dur: 30 },
+            { nombre: "Resinas/Empastes", dur: 60 },
             { nombre: "Extracciones", dur: 45 },
-            { nombre: "Ortodoncia y brackets", dur: 60 },
-            { nombre: "Implantes dentales", dur: 90 },
+            { nombre: "Coronas", dur: 90 },
+            { nombre: "Endodoncias", dur: 90 },
+            { nombre: "Implantes", dur: 90 },
+            { nombre: "Odontopediatría", dur: 30 },
+            { nombre: "Muelas del juicio/Terceros Molares", dur: 60 },
         ]
         selectServicio.innerHTML = `<option value="">Seleccione un servicio</option>` +
             servicios.map(s => `<option value="${s.nombre}">${s.nombre} (${s.dur} min)</option>`).join("")

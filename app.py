@@ -65,54 +65,65 @@ SESSION_SECRET     = os.environ.get("SESSION_SECRET") or ""
 DOCTOR_PHONE       = os.environ.get("DOCTOR_PHONE") or ""
 
 DURACIONES = {
-    "limpieza": 30, "limpieza dental": 30,
-    "revisión": 30, "revision": 30,
-    "revisión general": 30, "revisión y diagnóstico general": 30,
-    "blanqueamiento": 60, "blanqueamiento dental": 60,
-    "resinas": 60, "resina": 60,
-    "restauraciones": 60, "resinas y restauraciones": 60,
+    "limpieza": 30, "limpieza dental": 30, "limpiezas dentales": 30,
+    "resina": 60, "resinas": 60, "empaste": 60, "empastes": 60, "resinas/empastes": 60,
     "extracción": 45, "extraccion": 45, "extracciones": 45,
-    "ortodoncia": 60, "brackets": 60, "ortodoncia y brackets": 60,
-    "implante": 90, "implantes": 90, "implantes dentales": 90,
+    "corona": 90, "coronas": 90,
+    "endodoncia": 90, "endodoncias": 90,
+    "implante": 90, "implantes": 90,
+    "odontopediatría": 30, "odontopediatria": 30,
+    "muela del juicio": 60, "muelas del juicio": 60, "tercer molar": 60, "terceros molares": 60, "muelas del juicio/terceros molares": 60,
 }
 
 DURACION_DEFAULT = 60
-HORA_INICIO = 10
-HORA_FIN = 19
+HORA_INICIO = 9   # hora más temprana del consultorio (sábado 9:30)
+HORA_FIN    = 18  # hora de cierre
+
+# Horario por día de semana: lista de rangos (inicio, fin) en formato HH:MM
+# Días: 0=Lunes, 1=Martes, ..., 5=Sábado, 6=Domingo
+HORARIO = {
+    0: [("10:00", "13:00"), ("15:00", "18:00")],  # Lunes
+    1: [("10:00", "13:00"), ("15:00", "18:00")],  # Martes
+    2: [("10:00", "13:00"), ("15:00", "18:00")],  # Miércoles
+    3: [("10:00", "13:00"), ("15:00", "18:00")],  # Jueves
+    4: [("10:00", "13:00"), ("15:00", "18:00")],  # Viernes
+    5: [("09:30", "14:00")],                       # Sábado
+    6: [],                                          # Domingo — cerrado
+}
 
 # Servicios canónicos (nombre para mostrar, duración) — orden del dropdown
 SERVICIOS_DISPLAY = [
-    ("Limpieza dental", 30),
-    ("Revisión y diagnóstico general", 30),
-    ("Blanqueamiento dental", 60),
-    ("Resinas y restauraciones", 60),
+    ("Limpiezas dentales", 30),
+    ("Resinas/Empastes", 60),
     ("Extracciones", 45),
-    ("Ortodoncia y brackets", 60),
-    ("Implantes dentales", 90),
+    ("Coronas", 90),
+    ("Endodoncias", 90),
+    ("Implantes", 90),
+    ("Odontopediatría", 30),
+    ("Muelas del juicio/Terceros Molares", 60),
 ]
 
-SISTEMA_MOSADENT = """Eres el asistente virtual de MOSADENT, un consultorio dental en Guadalupe, Nuevo León.
+SISTEMA_DENTALES = """Eres el asistente virtual de Dentales, un consultorio dental en Guadalupe, Nuevo León.
 
 INFORMACIÓN DEL CONSULTORIO:
-- Nombre: MOSADENT
-- Dirección: P.° de las Américas 2213, Contry La Silla 9o Sector, Guadalupe, N.L.
-- Teléfono: 81 1679 8832
-- Horario: Lunes a Domingo de 10:00 AM a 7:00 PM
-- Calificación: 5 estrellas en Google
+- Nombre: Dentales
+- Dirección: Paseo de las Américas 2423-A, Contry La Silla 7o Sector, 67173 Guadalupe, N.L.
+- Teléfono: 81 8459 3119
+- Horario: Lunes a Viernes de 10:00 AM a 1:00 PM y de 3:00 PM a 6:00 PM — Sábado de 9:30 AM a 2:00 PM — Domingo cerrado
 
 SERVICIOS QUE OFRECEMOS:
-- Limpieza dental
-- Blanqueamiento dental
-- Ortodoncia y brackets
-- Implantes dentales
+- Limpiezas dentales
+- Resinas/Empastes
 - Extracciones
-- Resinas y restauraciones
-- Revisión y diagnóstico general
+- Coronas
+- Endodoncias
+- Implantes
+- Odontopediatría
+- Muelas del juicio/Terceros Molares
 
 PRECIOS:
 - Los precios varían según el caso de cada paciente
-- Ofrecemos consulta de diagnóstico para evaluar tu situación
-- Para conocer el costo exacto de tu tratamiento, agenda una cita
+- Para conocer el costo exacto de tu tratamiento, agenda una cita con la doctora
 
 CÓMO AGENDAR CITA:
 - El paciente usa el calendario de la interfaz para elegir fecha y hora disponible
@@ -121,12 +132,12 @@ CÓMO AGENDAR CITA:
 
 INSTRUCCIONES DE COMPORTAMIENTO:
 - Responde siempre en español, de forma amable y profesional
-- Si preguntan por precios exactos, di que varían según el caso y ofrece agendar una cita de diagnóstico gratuita
-- Si hay una emergencia dental, indica que llamen directamente al 81 1679 8832
+- Si preguntan por precios exactos, di que varían según el caso y ofrece agendar una cita
+- Si hay una emergencia dental, indica que llamen directamente al 81 8459 3119
 - Nunca inventes información que no esté en este documento
 - Tu propósito es agendar citas, siempre deberías referir a agendar una cita
-- No deberías dar información extra sobre consultas, no estás preparado para dar información médica, solo agenda citas
-- Tu lenguaje debe ser siempre formal y profesional, nunca coloquial, informal ni lenguaje de redes sociales
+- No des información médica, solo agenda citas
+- Tu lenguaje debe ser siempre formal y profesional
 - Mantén respuestas cortas y claras — esto es WhatsApp, no un ensayo"""
 
 conversaciones = {}
@@ -346,22 +357,11 @@ def obtener_bloqueos_fecha(fecha: str, doctor_id: int = None):
 
 def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
                    hora_inicio: int = None, hora_fin: int = None):
-    """Calcula slots disponibles. Si doctor_id se provee, usa horario del doctor."""
-    h_inicio = hora_inicio if hora_inicio is not None else HORA_INICIO
-    h_fin    = hora_fin    if hora_fin    is not None else HORA_FIN
-
-    # Si tenemos doctor_id pero no horas, buscar horas del doctor
-    if doctor_id and hora_inicio is None:
-        try:
-            conn = get_conn()
-            cursor = conn.cursor()
-            cursor.execute("SELECT hora_inicio, hora_fin FROM doctores WHERE id = %s", (doctor_id,))
-            row = cursor.fetchone()
-            conn.close()
-            if row:
-                h_inicio, h_fin = row[0], row[1]
-        except Exception:
-            pass
+    """Calcula slots disponibles respetando el horario por día de semana."""
+    dia_semana = datetime.strptime(fecha, "%Y-%m-%d").weekday()
+    rangos = HORARIO.get(dia_semana, [])
+    if not rangos:
+        return []
 
     citas_del_dia = obtener_citas_por_fecha(fecha, doctor_id)
     bloqueos_dia  = obtener_bloqueos_fecha(fecha, doctor_id)
@@ -387,21 +387,21 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
     minimo = ahora_mexico + timedelta(hours=2) if es_hoy else None
 
     slots = []
-    cursor_time = datetime.strptime(f"{fecha} {h_inicio:02d}:00", "%Y-%m-%d %H:%M")
-    fin_dia     = datetime.strptime(f"{fecha} {h_fin:02d}:00",    "%Y-%m-%d %H:%M")
-
-    while cursor_time + timedelta(minutes=duracion) <= fin_dia:
-        fin_slot = cursor_time + timedelta(minutes=duracion)
-        if es_hoy and cursor_time <= ahora_mexico:
+    for inicio_str, fin_str in rangos:
+        cursor_time = datetime.strptime(f"{fecha} {inicio_str}", "%Y-%m-%d %H:%M")
+        fin_rango   = datetime.strptime(f"{fecha} {fin_str}",    "%Y-%m-%d %H:%M")
+        while cursor_time + timedelta(minutes=duracion) <= fin_rango:
+            fin_slot = cursor_time + timedelta(minutes=duracion)
+            if es_hoy and cursor_time <= ahora_mexico:
+                cursor_time += timedelta(minutes=30)
+                continue
+            if es_hoy and minimo and cursor_time < minimo:
+                cursor_time += timedelta(minutes=30)
+                continue
+            disponible = all(fin_slot <= inicio or cursor_time >= fin for inicio, fin in ocupados)
+            if disponible:
+                slots.append(cursor_time.strftime("%H:%M"))
             cursor_time += timedelta(minutes=30)
-            continue
-        if es_hoy and minimo and cursor_time < minimo:
-            cursor_time += timedelta(minutes=30)
-            continue
-        disponible = all(fin_slot <= inicio or cursor_time >= fin for inicio, fin in ocupados)
-        if disponible:
-            slots.append(cursor_time.strftime("%H:%M"))
-        cursor_time += timedelta(minutes=30)
 
     return slots
 
@@ -1216,7 +1216,7 @@ async def chat(request: Request, mensaje: Mensaje):
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=500,
-        system=SISTEMA_MOSADENT,
+        system=SISTEMA_DENTALES,
         messages=conversaciones[mensaje.session_id]
     )
     respuesta = response.content[0].text
