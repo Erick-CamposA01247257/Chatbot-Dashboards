@@ -76,19 +76,6 @@ DURACIONES = {
     "implante": 90, "implantes": 90, "implantes dentales": 90,
 }
 
-# Mapeo servicio → username del doctor asignado
-SERVICIOS_DOCTOR = {
-    "limpieza": "dr.garcia", "limpieza dental": "dr.garcia",
-    "revisión": "dr.garcia", "revision": "dr.garcia",
-    "revisión general": "dr.garcia", "revisión y diagnóstico general": "dr.garcia",
-    "blanqueamiento": "dr.garcia", "blanqueamiento dental": "dr.garcia",
-    "ortodoncia": "dra.martinez", "brackets": "dra.martinez", "ortodoncia y brackets": "dra.martinez",
-    "extracción": "dr.lopez", "extraccion": "dr.lopez", "extracciones": "dr.lopez",
-    "implante": "dr.lopez", "implantes": "dr.lopez", "implantes dentales": "dr.lopez",
-    "resinas": "dra.rodriguez", "resina": "dra.rodriguez",
-    "restauraciones": "dra.rodriguez", "resinas y restauraciones": "dra.rodriguez",
-}
-
 DURACION_DEFAULT = 60
 HORA_INICIO = 10
 HORA_FIN = 19
@@ -103,17 +90,6 @@ SERVICIOS_DISPLAY = [
     ("Ortodoncia y brackets", 60),
     ("Implantes dentales", 90),
 ]
-
-# Mapeo username → lista de servicios canónicos
-def _build_servicios_por_username():
-    result = {}
-    for nombre, _ in SERVICIOS_DISPLAY:
-        username = SERVICIOS_DOCTOR.get(nombre.lower())
-        if username:
-            result.setdefault(username, []).append(nombre)
-    return result
-
-SERVICIOS_POR_USERNAME = _build_servicios_por_username()
 
 SISTEMA_MOSADENT = """Eres el asistente virtual de MOSADENT, un consultorio dental en Guadalupe, Nuevo León.
 
@@ -231,21 +207,20 @@ def init_db():
         )
     """)
 
-    # Seed doctores — solo se inserta/actualiza si la variable de entorno de contraseña está definida
-    doctores_seed = [
-        ("Dr. García",      "#3B82F6", 10, 15, "dr.garcia",      os.environ.get("PASS_DR_GARCIA")),
-        ("Dra. Martínez",   "#8B5CF6", 11, 19, "dra.martinez",   os.environ.get("PASS_DRA_MARTINEZ")),
-        ("Dr. López",       "#F59E0B", 10, 17, "dr.lopez",       os.environ.get("PASS_DR_LOPEZ")),
-        ("Dra. Rodríguez",  "#EC4899", 12, 19, "dra.rodriguez",  os.environ.get("PASS_DRA_RODRIGUEZ")),
-    ]
-    for nombre, color, h_ini, h_fin, username, password in doctores_seed:
-        if not password:
-            continue  # No sedar doctores sin contraseña configurada
+    # Seed doctor único — configurar con DOCTOR_NOMBRE, DOCTOR_USERNAME, DOCTOR_PASSWORD
+    doctor_nombre   = os.environ.get("DOCTOR_NOMBRE")
+    doctor_username = os.environ.get("DOCTOR_USERNAME")
+    doctor_password = os.environ.get("DOCTOR_PASSWORD")
+    if doctor_nombre and doctor_username and doctor_password:
         cursor.execute("""
             INSERT INTO doctores (nombre, color, hora_inicio, hora_fin, username, password_hash)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, color = EXCLUDED.color
-        """, (nombre, color, h_ini, h_fin, username, hash_password(password)))
+            VALUES (%s, '#3B82F6', %s, %s, %s, %s)
+            ON CONFLICT (username) DO UPDATE SET
+                nombre = EXCLUDED.nombre,
+                password_hash = EXCLUDED.password_hash,
+                hora_inicio = EXCLUDED.hora_inicio,
+                hora_fin = EXCLUDED.hora_fin
+        """, (doctor_nombre, HORA_INICIO, HORA_FIN, doctor_username, hash_password(doctor_password)))
 
     conn.commit()
     conn.close()
@@ -259,22 +234,21 @@ def obtener_doctores():
     return [
         {"id": f[0], "nombre": f[1], "color": f[2],
          "hora_inicio": f[3], "hora_fin": f[4],
-         "whatsapp": f[5], "username": f[6],
-         "servicios": SERVICIOS_POR_USERNAME.get(f[6], [])}
+         "whatsapp": f[5], "username": f[6]}
         for f in filas
     ]
 
-def asignar_doctor(servicio: str) -> int | None:
-    """Retorna doctor_id según el servicio. None si no hay mapeo."""
-    username = SERVICIOS_DOCTOR.get(servicio.lower().strip())
-    if not username:
+def get_doctor_id() -> int | None:
+    """Retorna el ID del único doctor en el sistema."""
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM doctores LIMIT 1")
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
         return None
-    conn = get_conn()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM doctores WHERE username = %s", (username,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else None
 
 def get_auto_confirmar() -> bool:
     try:
@@ -810,9 +784,7 @@ async def api_slots(fecha: str, servicio: str, doctor_id: int = None):
     if len(servicio) > 100:
         return JSONResponse(status_code=400, content={"error": "Servicio inválido"})
     duracion = get_duracion(servicio)
-    # Si no se especifica doctor, auto-asignar por servicio
-    if doctor_id is None:
-        doctor_id = asignar_doctor(servicio)
+    doctor_id = get_doctor_id()
     slots = calcular_slots(fecha, duracion, doctor_id)
     return JSONResponse(content={"fecha": fecha, "servicio": servicio, "duracion": duracion,
                                   "doctor_id": doctor_id, "slots": slots})
@@ -820,7 +792,7 @@ async def api_slots(fecha: str, servicio: str, doctor_id: int = None):
 @app.post("/api/agendar")
 @limiter.limit("10/hour")
 async def api_agendar(request: Request, cita: CitaRequest, background_tasks: BackgroundTasks):
-    doctor_id = asignar_doctor(cita.servicio)
+    doctor_id = get_doctor_id()
     duracion  = get_duracion(cita.servicio)
     slots     = calcular_slots(cita.fecha, duracion, doctor_id)
     if cita.hora not in slots:
@@ -846,7 +818,7 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request, background_
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     if sesion["rol"] == "owner":
         return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
-    doctor_id = asignar_doctor(cita.servicio)
+    doctor_id = get_doctor_id()
     duracion  = get_duracion(cita.servicio)
     slots     = calcular_slots(cita.fecha, duracion, doctor_id)
     if cita.hora not in slots:

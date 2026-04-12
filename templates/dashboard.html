@@ -711,9 +711,6 @@
             <button class="nav-btn" onclick="navegarDia(1)">›</button>
         </div>
         <div class="badge-citas" id="badge-citas">0 citas</div>
-        <select id="filtro-doctor" class="filtro-doctor-select" onchange="render()" style="display:none">
-            <option value="">Todos los doctores</option>
-        </select>
         <button class="btn-auditoria" id="btn-auditoria" onclick="abrirAuditoria()" title="Ver auditoría" style="display:none">🔍</button>
         <label class="toggle-wrap" title="Confirmar citas automáticamente al agendar">
             <input type="checkbox" id="toggle-autoconfirmar" onchange="cambiarAutoConfirmar(this.checked)">
@@ -811,10 +808,6 @@
             <span class="modal-etiqueta">Duración</span>
             <span class="modal-valor" id="m-duracion"></span>
         </div>
-        <div class="modal-fila" id="m-doctor-fila">
-            <span class="modal-etiqueta">Doctor</span>
-            <span class="modal-valor" id="m-doctor"></span>
-        </div>
         <div class="modal-fila">
             <span class="modal-etiqueta">Estado</span>
             <span id="m-estado"></span>
@@ -869,12 +862,6 @@
                 <label>Hasta</label>
                 <select id="bl-fin"></select>
             </div>
-        </div>
-        <div class="form-campo" id="bl-doctor-campo" style="display:none">
-            <label>¿Para quién?</label>
-            <select id="bl-doctor">
-                <option value="">Todos los doctores</option>
-            </select>
         </div>
         <div class="form-campo">
             <label>Motivo (opcional)</label>
@@ -1016,11 +1003,7 @@
 
     function getCitasFiltradas() {
         if (!Array.isArray(todasLasCitas)) return []
-        const filtroId = document.getElementById("filtro-doctor")?.value
-        return todasLasCitas.filter(c => {
-            if (filtroId && String(c.doctor_id) !== String(filtroId)) return false
-            return true
-        })
+        return todasLasCitas
     }
 
     function renderTimeline() {
@@ -1029,14 +1012,7 @@
             .sort((a, b) => a.hora.localeCompare(b.hora))
 
         const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
-        // "Día bloqueado" global (sin doctor) o del propio doctor si está en vista individual
-        const bloqueosGlobalesDia = bloqueosDelDia.filter(b => !b.hora_inicio && !b.doctor_id)
-        const bloqueosDoctorDia   = bloqueosDelDia.filter(b => !b.hora_inicio && b.doctor_id != null)
-        // Para doctor individual: su propio bloqueo de día completo también muestra el banner
-        const bloqueoPropioDoctor = rolActual === 'doctor'
-            ? bloqueosDoctorDia.find(b => Number(b.doctor_id) === Number(doctorIdActual))
-            : null
-        const diaBloqueado = bloqueosGlobalesDia.length > 0 || !!bloqueoPropioDoctor
+        const diaBloqueado = bloqueosDelDia.some(b => !b.hora_inicio)
 
         const citasPorHora = {}
         citasDelDia.forEach(c => {
@@ -1047,7 +1023,7 @@
 
         // Solo bloqueos de hora globales o del doctor actual (para vista individual)
         const bloqueosPorHora = {}
-        bloqueosDelDia.filter(b => b.hora_inicio && (!b.doctor_id || b.doctor_id === doctorIdActual)).forEach(b => {
+        bloqueosDelDia.filter(b => b.hora_inicio).forEach(b => {
             const h = parseInt(b.hora_inicio.split(":")[0])
             if (!bloqueosPorHora[h]) bloqueosPorHora[h] = []
             bloqueosPorHora[h].push(b)
@@ -1057,7 +1033,7 @@
         timeline.innerHTML = ""
 
         if (diaBloqueado) {
-            const bloqueo = bloqueoPropioDoctor || bloqueosGlobalesDia[0]
+            const bloqueo = bloqueosDelDia.find(b => !b.hora_inicio)
             const card = document.createElement("div")
             card.style.cssText = "background:#FFF5F5;border:1px solid #FECACA;border-left:4px solid #EF4444;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"
             card.innerHTML = `
@@ -1068,23 +1044,6 @@
                 <button onclick="eliminarBloqueo(${bloqueo.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:12px;color:#DC2626;cursor:pointer">Quitar</button>`
             timeline.appendChild(card)
         }
-
-        // Avisos de doctores individuales con día completo bloqueado
-        // (skip own block for doctor view — already shown as red "Día bloqueado" banner)
-        bloqueosDoctorDia.forEach(b => {
-            if (rolActual === 'doctor' && Number(b.doctor_id) === Number(doctorIdActual)) return
-            const doc = doctoresMap[b.doctor_id]
-            if (!doc) return
-            const card = document.createElement("div")
-            card.style.cssText = `background:${doc.color}10;border:1px solid ${doc.color}40;border-left:4px solid ${doc.color};border-radius:10px;padding:10px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center`
-            card.innerHTML = `
-                <div>
-                    <div style="font-size:13px;font-weight:600;color:${doc.color}">🚫 ${escaparHTML(doc.nombre)} — sin horario hoy</div>
-                    ${b.motivo ? `<div style="font-size:12px;color:${doc.color}cc;margin-top:2px">${escaparHTML(b.motivo)}</div>` : ''}
-                </div>
-                <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid ${doc.color}40;border-radius:7px;padding:5px 10px;font-size:12px;color:${doc.color};cursor:pointer">Quitar</button>`
-            timeline.appendChild(card)
-        })
 
         for (let h = HORA_INICIO; h < HORA_FIN; h++) {
             const citas = citasPorHora[h]
@@ -1111,15 +1070,12 @@
                         </div>`).join("") : ''}
                     ${citas ? citas.map(c => {
                         const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
-                        const docBadge = (rolActual === 'admin' || rolActual === 'asistente') && c.doctor_nombre
-                            ? `<span class="badge-doctor" style="background:${c.doctor_color}20;color:${c.doctor_color};border:1px solid ${c.doctor_color}40">${escaparHTML(c.doctor_nombre)}</span>`
-                            : ''
                         return `
                         <div class="cita-card ${clase}" id="card-${c.id}">
                             <div class="cita-card-header" style="display:flex;align-items:center">
                                 ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
                                 <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}${docBadge}</div>
+                                    <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
                                     <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
                                 </div>
                             </div>
@@ -1173,121 +1129,10 @@
     }
 
     function renderGridVisual() {
-        const esAdmin = rolActual === 'admin' || rolActual === 'asistente'
-        const doctores = Object.values(doctoresMap)
-        if (esAdmin && doctores.length > 0) {
-            renderGridMultiDoctor(doctores)
-        } else {
-            renderGridSingle()
-        }
+        renderGridSingle()
     }
 
-    // Vista por columnas de doctor (solo admin/asistente)
-    function renderGridMultiDoctor(doctores) {
-        const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
-        const bloqueosDelDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio)
-        const todosBloqueosDia = todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada)
-        const grid = document.getElementById("grid-visual")
-        grid.innerHTML = ""
-
-        const LABEL_W = 46
-
-        // ── Header con nombre de cada doctor ──
-        const header = document.createElement("div")
-        header.style.cssText = `display:flex; margin-bottom:6px; margin-left:${LABEL_W}px; gap:2px`
-        doctores.forEach(doc => {
-            const h = document.createElement("div")
-            h.style.cssText = `flex:1; text-align:center; font-size:10px; font-weight:600;
-                color:${doc.color}; background:${doc.color}18; border-radius:6px;
-                padding:5px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis`
-            h.textContent = doc.nombre
-            header.appendChild(h)
-        })
-        grid.appendChild(header)
-
-        // ── Wrapper flex: columna de horas + columnas de doctores ──
-        const wrapper = document.createElement("div")
-        wrapper.style.cssText = `display:flex; gap:2px`
-
-        // Columna de horas
-        const horaCol = document.createElement("div")
-        horaCol.style.cssText = `width:${LABEL_W}px; flex-shrink:0`
-        for (let h = HORA_INICIO; h < HORA_FIN; h++) {
-            const lbl = document.createElement("div")
-            lbl.style.cssText = `height:${ALTURA_HORA}px; display:flex; align-items:flex-start;
-                justify-content:flex-end; padding-right:6px; padding-top:2px`
-            lbl.innerHTML = `<span style="font-size:10px;color:var(--texto-muted);font-weight:500">${h}:00</span>`
-            horaCol.appendChild(lbl)
-        }
-        wrapper.appendChild(horaCol)
-
-        // Una columna por doctor
-        doctores.forEach(doc => {
-            const col = document.createElement("div")
-            col.style.cssText = `flex:1; position:relative; border-left:1px solid var(--borde); cursor:cell`
-            col.onclick = e => abrirNuevaCitaEnSlot(e, fechaSeleccionada, doc.id)
-
-            // Líneas de hora
-            for (let h = HORA_INICIO; h < HORA_FIN; h++) {
-                const line = document.createElement("div")
-                line.style.cssText = `height:${ALTURA_HORA}px; border-top:1px solid var(--borde)`
-                col.appendChild(line)
-            }
-
-            // Día completo bloqueado para este doctor o global
-            const diaCompleto = todosBloqueosDia.find(b => !b.hora_inicio && (!b.doctor_id || Number(b.doctor_id) === Number(doc.id)))
-            if (diaCompleto) {
-                const overlay = document.createElement("div")
-                overlay.style.cssText = `position:absolute;inset:0;background:#FEE2E280;
-                    border:1px solid #FECACA;display:flex;align-items:center;
-                    justify-content:center;z-index:2;border-radius:2px`
-                overlay.innerHTML = `<span style="font-size:11px;font-weight:600;color:#DC2626;writing-mode:vertical-lr;transform:rotate(180deg)">🚫 Bloqueado</span>`
-                col.appendChild(overlay)
-            }
-
-            // Citas de este doctor
-            citasDelDia.filter(c => c.doctor_id === doc.id).forEach(cita => {
-                const [hh, mm] = cita.hora.split(":").map(Number)
-                const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
-                const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
-                const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
-                const bloque = document.createElement("div")
-                bloque.className = `grid-bloque ${claseGrid}`
-                if (!claseGrid) {
-                    bloque.style.background = doc.color + '18'
-                    bloque.style.borderColor = doc.color + '50'
-                    bloque.style.borderLeftColor = doc.color
-                }
-                bloque.style.cssText += `top:${top}px; height:${height}px; left:2px; right:2px; position:absolute; cursor:pointer`
-                bloque.onclick = () => abrirModal(cita.id)
-                bloque.innerHTML = `
-                    <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+doc.color : ''}">${escaparHTML(cita.nombre)}</div>
-                    <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+doc.color+'cc' : ''}">${convertir12h(cita.hora)} · ${cita.duracion}m</div>`
-                col.appendChild(bloque)
-            })
-
-            // Bloqueos: globales (doctor_id null) o específicos de este doctor
-            bloqueosDelDia.filter(b => !b.doctor_id || Number(b.doctor_id) === Number(doc.id)).forEach(b => {
-                if (!b.hora_inicio) return  // día completo se maneja en timeline
-                const [hh, mm] = b.hora_inicio.split(":").map(Number)
-                const [hh2, mm2] = b.hora_fin.split(":").map(Number)
-                const top = (hh - HORA_INICIO + mm / 60) * ALTURA_HORA
-                const durMin = (hh2 * 60 + mm2) - (hh * 60 + mm)
-                const height = Math.max((durMin / 60) * ALTURA_HORA - 4, 20)
-                const bloque = document.createElement("div")
-                bloque.className = "grid-bloque bloqueado"
-                bloque.style.cssText = `top:${top}px; height:${height}px; left:2px; right:2px; position:absolute`
-                bloque.innerHTML = `<div class="grid-bloque-nombre">🚫 ${b.motivo ? escaparHTML(b.motivo) : 'Bloqueado'}</div>`
-                col.appendChild(bloque)
-            })
-
-            wrapper.appendChild(col)
-        })
-
-        grid.appendChild(wrapper)
-    }
-
-    // Vista simple (doctor individual o sin mapa de doctores)
+    // Vista simple — única vista
     function renderGridSingle() {
         const citasDelDia = getCitasFiltradas().filter(c => c.fecha === fechaSeleccionada)
         const grid = document.getElementById("grid-visual")
@@ -1307,8 +1152,7 @@
         }
         // Overlay de día completo bloqueado (doctor individual o global)
         const diaCompletoSingle = todosLosBloqueos.find(b =>
-            b.fecha === fechaSeleccionada && !b.hora_inicio &&
-            (!b.doctor_id || Number(b.doctor_id) === Number(doctorIdActual))
+            b.fecha === fechaSeleccionada && !b.hora_inicio
         )
         if (diaCompletoSingle) {
             const overlay = document.createElement("div")
@@ -1328,23 +1172,21 @@
             const bloque = document.createElement("div")
             const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
             bloque.className = `grid-bloque ${claseGrid}`
-            const dc = cita.doctor_color || '#1E66B5'
             if (!claseGrid) {
-                bloque.style.background = dc + '18'
-                bloque.style.borderColor = dc + '50'
-                bloque.style.borderLeftColor = dc
+                bloque.style.background = '#1E66B518'
+                bloque.style.borderColor = '#1E66B550'
+                bloque.style.borderLeftColor = '#1E66B5'
             }
             bloque.style.cssText += `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
-                <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:'+dc : ''}">${escaparHTML(cita.nombre)}</div>
-                <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:'+dc+'cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
+                <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:#1E66B5' : ''}">${escaparHTML(cita.nombre)}</div>
+                <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:#1E66B5cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
         })
 
         const bloqueosDelDiaGrid = todosLosBloqueos.filter(b =>
-            b.fecha === fechaSeleccionada && b.hora_inicio &&
-            (!b.doctor_id || Number(b.doctor_id) === Number(doctorIdActual))
+            b.fecha === fechaSeleccionada && b.hora_inicio
         )
         bloqueosDelDiaGrid.forEach(b => {
             const [hh, mm] = b.hora_inicio.split(":").map(Number)
@@ -1421,10 +1263,8 @@
         document.getElementById("nc-fecha").min = hoy
         document.getElementById("nc-hora").innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
 
-        // Filtrar servicios según el doctor del slot clickeado
         const selectServicio = document.getElementById("nc-servicio")
-        const doctor = opts.doctorId ? doctoresMap[opts.doctorId] : null
-        const todosServicios = [
+        const servicios = [
             { nombre: "Limpieza dental", dur: 30 },
             { nombre: "Revisión y diagnóstico general", dur: 30 },
             { nombre: "Blanqueamiento dental", dur: 60 },
@@ -1433,11 +1273,8 @@
             { nombre: "Ortodoncia y brackets", dur: 60 },
             { nombre: "Implantes dentales", dur: 90 },
         ]
-        const serviciosFiltrados = doctor && doctor.servicios && doctor.servicios.length > 0
-            ? todosServicios.filter(s => doctor.servicios.includes(s.nombre))
-            : todosServicios
         selectServicio.innerHTML = `<option value="">Seleccione un servicio</option>` +
-            serviciosFiltrados.map(s => `<option value="${s.nombre}">${s.nombre} (${s.dur} min)</option>`).join("")
+            servicios.map(s => `<option value="${s.nombre}">${s.nombre} (${s.dur} min)</option>`).join("")
         selectServicio.value = ""
         document.getElementById("nc-error").classList.remove("visible")
         document.getElementById("btn-nc-guardar").disabled = false
@@ -1581,15 +1418,6 @@
         document.getElementById("m-hora").textContent = convertir12h(citaModal.hora)
         document.getElementById("m-duracion").textContent = `${citaModal.duracion} min`
 
-        const mDocFila = document.getElementById("m-doctor-fila")
-        const mDoc = document.getElementById("m-doctor")
-        if (citaModal.doctor_nombre) {
-            mDocFila.style.display = ""
-            const dc = citaModal.doctor_color || '#1E66B5'
-            mDoc.innerHTML = `<span class="badge-doctor" style="background:${dc}20;color:${dc};border:1px solid ${dc}40">${escaparHTML(citaModal.doctor_nombre)}</span>`
-        } else {
-            mDocFila.style.display = "none"
-        }
 
         const estadoEl = document.getElementById("m-estado")
         const btnConfirmar = document.getElementById("btn-modal-confirmar")
@@ -1731,18 +1559,6 @@
         document.getElementById("bl-fin").innerHTML = opts
         document.getElementById("bl-fin").value = "12:00"
 
-        // Selector de doctor solo para admin/asistente
-        const doctorCampo = document.getElementById("bl-doctor-campo")
-        const doctorSel = document.getElementById("bl-doctor")
-        const doctores = Object.values(doctoresMap)
-        if ((rolActual === 'admin' || rolActual === 'asistente') && doctores.length > 0) {
-            doctorCampo.style.display = "block"
-            doctorSel.innerHTML = `<option value="">Todos los doctores</option>` +
-                doctores.map(d => `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`).join("")
-        } else {
-            doctorCampo.style.display = "none"
-        }
-
         document.getElementById("modal-bloqueo-overlay").classList.add("visible")
     }
 
@@ -1777,11 +1593,10 @@
         btn.disabled = true
         btn.textContent = "Guardando..."
 
-        const doctorId = document.getElementById("bl-doctor")?.value || null
         const res = await fetch("/api/bloqueos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fecha, todo_el_dia: todoDia, hora_inicio: horaInicio, hora_fin: horaFin, motivo, doctor_id: doctorId || null })
+            body: JSON.stringify({ fecha, todo_el_dia: todoDia, hora_inicio: horaInicio, hora_fin: horaFin, motivo, doctor_id: null })
         })
 
         if (res.ok) {
@@ -1900,8 +1715,8 @@
     // ── Auto-confirmar ──
     async function cargarConfig() {
         try {
-            const [resConfig, resMe, resDoctores] = await Promise.all([
-                fetch("/api/config"), fetch("/api/me"), fetch("/api/doctores")
+            const [resConfig, resMe] = await Promise.all([
+                fetch("/api/config"), fetch("/api/me")
             ])
             if (resConfig.ok) {
                 const data = await resConfig.json()
@@ -1919,36 +1734,7 @@
                     document.getElementById("btn-auditoria").style.display = "flex"
                 }
 
-                // Cargar doctores para todos los roles
-                if (resDoctores.ok) {
-                    const dataDoctores = await resDoctores.json()
-                    dataDoctores.doctores.forEach(d => { doctoresMap[d.id] = d })
-
-                    // Filtro solo para admin y asistente
-                    if (me.rol === "admin" || me.rol === "asistente") {
-                        const filtro = document.getElementById("filtro-doctor")
-                        filtro.style.display = "block"
-                        filtro.innerHTML = `<option value="">Todos los doctores</option>` +
-                            dataDoctores.doctores.map(d =>
-                                `<option value="${d.id}">${escaparHTML(d.nombre)}</option>`
-                            ).join("")
-                    }
-                }
-
-                // Re-render después de cargar doctoresMap (fix timing)
                 if (me.rol !== 'owner') render()
-
-                // Si es doctor, mostrar su nombre en el panel
-                if (me.rol === "doctor" && doctorNombreActual) {
-                    const subtitulo = document.getElementById("agenda-subtitulo")
-                    if (subtitulo) {
-                        const orig = subtitulo.textContent
-                        subtitulo.textContent = orig // se actualizará en render
-                    }
-                    // Actualizar logo/header con nombre del doctor
-                    const logoNombre = document.querySelector(".logo-nombre")
-                    if (logoNombre) logoNombre.textContent = `Dentales — ${doctorNombreActual}`
-                }
             }
         } catch(e) { console.error(e) }
     }
