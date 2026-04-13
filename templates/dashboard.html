@@ -1269,11 +1269,40 @@
 
         grid.appendChild(wrapper)
 
-        // Citas — posicionadas con timeToOffset para respetar el break
+        // ── Layout de columnas para citas simultáneas ──
+        const LABEL_W = 46
+        const GAP = 3
+        const availW = wrapper.offsetWidth - LABEL_W - 6
+
+        // Asignar columna a cada cita (greedy sweep)
+        const sorted = [...citasDelDia].sort((a, b) => strToMin(a.hora) - strToMin(b.hora))
+        const colEnds = []       // tiempo de fin de la última cita en cada columna
+        const citaCol = new Map() // cita.id → índice de columna
+
+        for (const cita of sorted) {
+            const start = strToMin(cita.hora)
+            const end   = start + cita.duracion
+            let col = colEnds.findIndex(e => e <= start)
+            if (col === -1) col = colEnds.length
+            colEnds[col] = end
+            citaCol.set(cita.id, col)
+        }
+
+        // Para cada cita: cuántas citas se solapan con ella en ese instante
+        function concurrentCount(cita) {
+            const s = strToMin(cita.hora), e = s + cita.duracion
+            return citasDelDia.filter(o => strToMin(o.hora) < e && strToMin(o.hora) + o.duracion > s).length
+        }
+
+        // Citas — posicionadas con timeToOffset y columnas laterales
         citasDelDia.forEach(cita => {
-            const top    = timeToOffset(cita.hora, segmentos)
-            const height = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
-            const bloque = document.createElement("div")
+            const col     = citaCol.get(cita.id) || 0
+            const numCols = concurrentCount(cita)
+            const colW    = (availW - GAP * (numCols - 1)) / numCols
+            const left    = LABEL_W + col * (colW + GAP)
+            const top     = timeToOffset(cita.hora, segmentos)
+            const height  = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
+            const bloque  = document.createElement("div")
             const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
             bloque.className = `grid-bloque ${claseGrid}`
             if (!claseGrid) {
@@ -1281,7 +1310,7 @@
                 bloque.style.borderColor = '#1E66B550'
                 bloque.style.borderLeftColor = '#1E66B5'
             }
-            bloque.style.cssText += `top:${top}px; height:${height}px; left:46px; right:4px; position:absolute; cursor:pointer`
+            bloque.style.cssText += `top:${top}px; height:${height}px; left:${left}px; width:${colW}px; position:absolute; cursor:pointer`
             bloque.onclick = () => abrirModal(cita.id)
             bloque.innerHTML = `
                 <div class="grid-bloque-nombre" style="${!claseGrid ? 'color:#1E66B5' : ''}">${escaparHTML(cita.nombre)}</div>
