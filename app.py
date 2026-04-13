@@ -78,6 +78,7 @@ DURACIONES = {
 DURACION_DEFAULT = 60
 HORA_INICIO = 9   # hora más temprana del consultorio (sábado 9:30)
 HORA_FIN    = 18  # hora de cierre
+MAX_CITAS_SIMULTANEAS = 3  # doctores disponibles en paralelo
 
 # Horario por día de semana: lista de rangos (inicio, fin) en formato HH:MM
 # Días: 0=Lunes, 1=Martes, ..., 5=Sábado, 6=Domingo
@@ -398,7 +399,8 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
             if es_hoy and minimo and cursor_time < minimo:
                 cursor_time += timedelta(minutes=30)
                 continue
-            disponible = all(fin_slot <= inicio or cursor_time >= fin for inicio, fin in ocupados)
+            solapados = sum(1 for inicio, fin in ocupados if inicio < fin_slot and fin > cursor_time)
+            disponible = solapados < MAX_CITAS_SIMULTANEAS
             if disponible:
                 slots.append(cursor_time.strftime("%H:%M"))
             cursor_time += timedelta(minutes=30)
