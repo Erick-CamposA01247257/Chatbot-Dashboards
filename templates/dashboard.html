@@ -1898,12 +1898,24 @@
         </div>`
     }
 
+    function conectarEventos() {
+        const es = new EventSource("/api/eventos")
+        es.onmessage = e => {
+            if (e.data === "nueva_cita") cargarCitas()
+        }
+        es.onerror = () => {
+            es.close()
+            setTimeout(conectarEventos, 5000)  // reconectar tras 5s si falla
+        }
+    }
+
     cargarConfig().then(() => {
         if (rolActual === 'owner') {
             mostrarVistaOwner()
         } else {
             cargarCitas()
-            setInterval(cargarCitas, 5000)
+            setInterval(cargarCitas, 30000)  // fallback polling cada 30s
+            conectarEventos()               // actualizaciones instantáneas vía SSE
         }
     })
 </script>

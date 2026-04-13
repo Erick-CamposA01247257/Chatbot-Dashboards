@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Response, BackgroundTasks
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -23,6 +23,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from datetime import date, datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio
 
 load_dotenv()
 
@@ -33,6 +34,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Sesiones en memoria: {token: {username, rol, doctor_id}}
 sessions = {}
+
+# Colas SSE para notificaciones en tiempo real al dashboard
+_sse_queues: list[asyncio.Queue] = []
+
+async def _broadcast_sse(mensaje: str):
+    """Notifica a todos los dashboards conectados vía SSE."""
+    for q in list(_sse_queues):
+        try:
+            q.put_nowait(mensaje)
+        except Exception:
+            pass
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
@@ -791,6 +803,37 @@ async def api_slots(fecha: str, servicio: str, doctor_id: int = None):
     return JSONResponse(content={"fecha": fecha, "servicio": servicio, "duracion": duracion,
                                   "doctor_id": doctor_id, "slots": slots})
 
+@app.get("/api/eventos")
+async def api_eventos(request: Request):
+    """SSE — el dashboard se suscribe aquí para recibir actualizaciones en tiempo real."""
+    sesion = verificar_sesion(request)
+    if not sesion or sesion["rol"] == "owner":
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+
+    queue: asyncio.Queue = asyncio.Queue()
+    _sse_queues.append(queue)
+
+    async def generator():
+        try:
+            yield "data: conectado\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=25)
+                    yield f"data: {msg}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"  # keepalive para que Railway no cierre la conexión
+        finally:
+            if queue in _sse_queues:
+                _sse_queues.remove(queue)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
 @app.post("/api/agendar")
 @limiter.limit("10/hour")
 async def api_agendar(request: Request, cita: CitaRequest, background_tasks: BackgroundTasks):
@@ -805,6 +848,7 @@ async def api_agendar(request: Request, cita: CitaRequest, background_tasks: Bac
     auto = get_auto_confirmar()
     token = guardar_cita(cita.nombre, cita.servicio, cita.fecha, cita.hora, duracion,
                          cita.telefono, confirmada=auto, doctor_id=doctor_id)
+    background_tasks.add_task(_broadcast_sse, "nueva_cita")
     background_tasks.add_task(notificar_doctora, cita.nombre, cita.servicio, cita.fecha, cita.hora)
     if auto and cita.telefono:
         background_tasks.add_task(
