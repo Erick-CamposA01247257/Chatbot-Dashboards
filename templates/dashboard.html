@@ -1161,15 +1161,12 @@
                                     const c = citasSlot[i]
                                     const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
                                     espacios.push(`
-                                    <div class="cita-card ${clase}" id="card-${c.id}">
-                                        <div class="cita-card-header" style="display:flex;align-items:center">
-                                            ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
-                                            <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                                <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
-                                                <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
-                                            </div>
+                                    <div class="cita-card ${clase}" id="card-${c.id}" onclick="abrirModal(${c.id})" style="cursor:pointer">
+                                        <div class="cita-card-header">
+                                            <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
+                                            <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
                                         </div>
-                                        <div class="cita-detalle" onclick="abrirModal(${c.id})">
+                                        <div class="cita-detalle">
                                             <span>${escaparHTML(c.servicio)}</span>
                                             <div class="cita-detalle-sep"></div>
                                             <span>${c.duracion} min</span>
