@@ -369,7 +369,8 @@ def obtener_bloqueos_fecha(fecha: str, doctor_id: int = None):
     return [{"id": f[0], "hora_inicio": f[1], "hora_fin": f[2], "motivo": f[3], "doctor_id": f[4]} for f in filas]
 
 def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
-                   hora_inicio: int = None, hora_fin: int = None):
+                   hora_inicio: int = None, hora_fin: int = None,
+                   bypass_tiempo: bool = False):
     """Calcula slots disponibles respetando el horario por día de semana."""
     dia_semana = datetime.strptime(fecha, "%Y-%m-%d").weekday()
     rangos = HORARIO.get(dia_semana, [])
@@ -396,7 +397,7 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
 
     ahora_mexico = datetime.now() - timedelta(hours=6)
     hoy = ahora_mexico.strftime("%Y-%m-%d")
-    es_hoy = fecha == hoy
+    es_hoy = fecha == hoy and not bypass_tiempo
     minimo = ahora_mexico + timedelta(hours=2) if es_hoy else None
 
     slots = []
@@ -793,7 +794,7 @@ async def api_citas(request: Request):
     return JSONResponse(content={"total": len(citas), "citas": citas})
 
 @app.get("/api/slots")
-async def api_slots(fecha: str, servicio: str, doctor_id: int = None):
+async def api_slots(request: Request, fecha: str, servicio: str, doctor_id: int = None):
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', fecha):
         return JSONResponse(status_code=400, content={"error": "Formato de fecha inválido"})
     try:
@@ -804,7 +805,8 @@ async def api_slots(fecha: str, servicio: str, doctor_id: int = None):
         return JSONResponse(status_code=400, content={"error": "Servicio inválido"})
     duracion = get_duracion(servicio)
     doctor_id = get_doctor_id()
-    slots = calcular_slots(fecha, duracion, doctor_id)
+    bypass = verificar_sesion(request) is not None
+    slots = calcular_slots(fecha, duracion, doctor_id, bypass_tiempo=bypass)
     return JSONResponse(content={"fecha": fecha, "servicio": servicio, "duracion": duracion,
                                   "doctor_id": doctor_id, "slots": slots})
 
