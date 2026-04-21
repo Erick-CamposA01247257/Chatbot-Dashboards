@@ -176,11 +176,11 @@
         /* ── Timeline ── */
         .timeline { display: flex; flex-direction: column; }
 
-        .timeline-slot { display: flex; gap: 14px; min-height: 72px; }
+        .timeline-slot { display: flex; gap: 14px; min-height: 140px; }
 
-        .timeline-hora-col { width: 40px; flex-shrink: 0; padding-top: 2px; }
+        .timeline-hora-col { width: 48px; flex-shrink: 0; padding-top: 4px; }
 
-        .timeline-hora { font-size: 12px; font-weight: 500; color: var(--texto-muted); text-align: right; }
+        .timeline-hora { font-size: 14px; font-weight: 600; color: var(--texto-muted); text-align: right; }
 
         .timeline-linea-col {
             display: flex; flex-direction: column;
@@ -188,16 +188,16 @@
         }
 
         .timeline-punto {
-            width: 10px; height: 10px;
+            width: 12px; height: 12px;
             border-radius: 50%; background: var(--borde);
-            flex-shrink: 0; margin-top: 4px;
+            flex-shrink: 0; margin-top: 5px;
         }
 
         .timeline-punto.activo { background: var(--azul); }
 
         .timeline-linea { width: 1px; flex: 1; background: var(--borde); margin-top: 4px; }
 
-        .timeline-content { flex: 1; padding-bottom: 14px; }
+        .timeline-content { flex: 1; padding-bottom: 20px; }
 
         .cita-card {
             background: var(--surface);
