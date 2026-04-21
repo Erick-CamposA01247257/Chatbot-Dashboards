@@ -206,6 +206,8 @@
             padding: 12px 14px;
             border-left: 4px solid var(--azul);
             margin-bottom: 8px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
         }
 
         .cita-card:last-child { margin-bottom: 0; }
@@ -1304,8 +1306,9 @@
             const col  = citaCol.get(cita.id) || 0
             const colW = colWFixed
             const left = LABEL_W + col * (colW + GAP)
-            const top     = timeToOffset(cita.hora, segmentos)
-            const height  = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
+            const top  = timeToOffset(cita.hora, segmentos)
+            const seg  = segmentos.find(s => s[0] === cita.hora) || segmentos.find(s => strToMin(s[0]) <= strToMin(cita.hora) && strToMin(cita.hora) < strToMin(s[1]))
+            const height = seg ? Math.max((strToMin(seg[1]) - strToMin(seg[0])) / 60 * ALTURA_HORA - 4, 28) : Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
             const bloque  = document.createElement("div")
             const claseGrid = cita.no_show ? '' : cita.confirmada ? 'confirmado' : cita.irregular ? 'irregular' : ''
             bloque.className = `grid-bloque ${claseGrid}`
@@ -1324,8 +1327,6 @@
 
         // Espacios disponibles — 3 columnas fijas por slot de hora
         if (!diaCompletoSingle) {
-            const MAX_COLS = 3
-            const colWFixed = (availW - GAP * (MAX_COLS - 1)) / MAX_COLS
             segmentos.forEach(seg => {
                 const horaStr = seg[0]  // "10:00" o "17:00"
                 const top = timeToOffset(horaStr, segmentos)
