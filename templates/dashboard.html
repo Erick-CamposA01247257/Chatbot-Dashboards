@@ -1248,8 +1248,8 @@
                 const sep = document.createElement("div")
                 sep.style.cssText = `height:${BREAK_HEIGHT}px; display:flex; align-items:center;
                     justify-content:center; background:#FAFBFC;
-                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;
-                    pointer-events:none;`
+                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;`
+                sep.onclick = e => e.stopPropagation()
                 sep.innerHTML = `
                     <div style="display:inline-flex;align-items:center;gap:5px;background:white;
                         border:1px solid #E2E8F0;border-radius:20px;padding:3px 12px 3px 9px;
