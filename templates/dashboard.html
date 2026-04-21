@@ -1378,7 +1378,7 @@
         const tMin = strToMin(hora)
         let mejorSlot = null, mejorDiff = Infinity
         for (const [inicio, fin] of segmentos) {
-            for (let m = strToMin(inicio); m < strToMin(fin); m += 30) {
+            for (let m = strToMin(inicio); m < strToMin(fin); m += 60) {
                 const diff = Math.abs(tMin - m)
                 if (diff < mejorDiff) { mejorDiff = diff; mejorSlot = m }
             }

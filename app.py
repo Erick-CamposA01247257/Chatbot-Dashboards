@@ -406,16 +406,16 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
         while cursor_time < fin_rango:
             fin_slot = cursor_time + timedelta(minutes=duracion)
             if es_hoy and cursor_time <= ahora_mexico:
-                cursor_time += timedelta(minutes=30)
+                cursor_time += timedelta(minutes=60)
                 continue
             if es_hoy and minimo and cursor_time < minimo:
-                cursor_time += timedelta(minutes=30)
+                cursor_time += timedelta(minutes=60)
                 continue
             solapados = sum(1 for inicio, fin in ocupados if inicio < fin_slot and fin > cursor_time)
             disponible = solapados < MAX_CITAS_SIMULTANEAS
             if disponible:
                 slots.append(cursor_time.strftime("%H:%M"))
-            cursor_time += timedelta(minutes=30)
+            cursor_time += timedelta(minutes=60)
 
     return slots
 
