@@ -238,11 +238,11 @@
         }
 
         .hora-vacia { color: var(--texto-muted); font-size: 12px; font-weight: 300; padding: 4px 0; }
-        .slot-espacio { flex: 1; min-height: 80px; border: 2px dashed var(--borde); border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--texto-muted); font-size: 12px; font-weight: 500; letter-spacing: 0.3px;
-            cursor: pointer; transition: border-color .15s, background .15s; }
-        .slot-espacio:hover { border-color: var(--azul); background: #F0F6FF; color: var(--azul); }
+        .slot-espacio { flex: 1; min-height: 56px; background: var(--bg); border: 1px solid var(--borde);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            color: var(--texto-muted); font-size: 12px; font-weight: 400;
+            cursor: pointer; transition: background .15s, color .15s; }
+        .slot-espacio:hover { background: #F0F6FF; color: var(--azul); }
         .cita-card { flex: 1; }
 
         /* ── Panel derecho ── */
@@ -1351,10 +1351,10 @@
                     const left = LABEL_W + col * (colWFixed + GAP)
                     const ph = document.createElement("div")
                     ph.style.cssText = `position:absolute; top:${top}px; height:${segH}px; left:${left}px; width:${colWFixed}px;
-                        border:2px dashed var(--borde); border-radius:8px; display:flex;
+                        background:var(--bg); border:1px solid var(--borde); border-radius:8px; display:flex;
                         align-items:center; justify-content:center; cursor:pointer;
-                        font-size:11px; font-weight:500; color:var(--texto-muted);
-                        transition:border-color .15s, background .15s;`
+                        font-size:11px; font-weight:400; color:var(--texto-muted);
+                        transition:background .15s, color .15s;`
                     ph.textContent = "Espacio Disponible"
                     ph.onmouseenter = () => { ph.style.borderColor = "var(--azul)"; ph.style.background = "#F0F6FF"; ph.style.color = "var(--azul)" }
                     ph.onmouseleave = () => { ph.style.borderColor = ""; ph.style.background = ""; ph.style.color = "var(--texto-muted)" }
