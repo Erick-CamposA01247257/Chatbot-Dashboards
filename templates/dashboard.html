@@ -1438,6 +1438,10 @@
             selectHora.innerHTML = `<option value="">Seleccione fecha y servicio primero</option>`
             return
         }
+        if (new Date(fecha + "T12:00:00").getDay() === 0) {
+            selectHora.innerHTML = `<option value="">El consultorio no atiende los domingos</option>`
+            return
+        }
         selectHora.innerHTML = `<option value="">Cargando...</option>`
         const res = await fetch(`/api/slots?fecha=${fecha}&servicio=${encodeURIComponent(servicio)}`)
         const data = await res.json()

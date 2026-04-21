@@ -791,9 +791,10 @@ function paso1Fecha() {
         const fecha = `${estado.año}-${String(estado.mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
         const esHoy = d === hoy.getDate() && estado.mes === hoy.getMonth() && estado.año === hoy.getFullYear()
         const pasado = fecha < hoyFecha
+        const esDomingo = new Date(fecha + "T12:00:00").getDay() === 0
         const seleccionado = fecha === estado.fecha
         gridHTML += `<button class="cal-dia ${esHoy ? 'hoy':''} ${seleccionado ? 'seleccionado':''}"
-            ${pasado ? 'disabled' : ''}
+            ${(pasado || esDomingo) ? 'disabled' : ''}
             onclick="elegirFecha('${fecha}')">${d}</button>`
     }
 
