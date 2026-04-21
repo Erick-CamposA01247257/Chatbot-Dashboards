@@ -95,12 +95,12 @@ MAX_CITAS_SIMULTANEAS = 3  # doctores disponibles en paralelo
 # Horario por día de semana: lista de rangos (inicio, fin) en formato HH:MM
 # Días: 0=Lunes, 1=Martes, ..., 5=Sábado, 6=Domingo
 HORARIO = {
-    0: [("10:00", "13:00"), ("15:00", "18:00")],  # Lunes
-    1: [("10:00", "13:00"), ("15:00", "18:00")],  # Martes
-    2: [("10:00", "13:00"), ("15:00", "18:00")],  # Miércoles
-    3: [("10:00", "13:00"), ("15:00", "18:00")],  # Jueves
-    4: [("10:00", "13:00"), ("15:00", "18:00")],  # Viernes
-    5: [("09:30", "14:00")],                       # Sábado
+    0: [("10:00", "10:40"), ("17:00", "17:40")],  # Lunes
+    1: [("10:00", "10:40"), ("17:00", "17:40")],  # Martes
+    2: [("10:00", "10:40"), ("17:00", "17:40")],  # Miércoles
+    3: [("10:00", "10:40"), ("17:00", "17:40")],  # Jueves
+    4: [("10:00", "10:40"), ("17:00", "17:40")],  # Viernes
+    5: [("10:00", "10:40"), ("13:00", "13:40")],  # Sábado
     6: [],                                          # Domingo — cerrado
 }
 
@@ -122,7 +122,7 @@ INFORMACIÓN DEL CONSULTORIO:
 - Nombre: Dentales
 - Dirección: Paseo de las Américas 2423-A, Contry La Silla 7o Sector, 67173 Guadalupe, N.L.
 - Teléfono: 81 8459 3119
-- Horario: Lunes a Viernes de 10:00 AM a 1:00 PM y de 3:00 PM a 6:00 PM — Sábado de 9:30 AM a 2:00 PM — Domingo cerrado
+- Horario: Lunes a Viernes de 10:00 AM a 10:40 AM y de 5:00 PM a 5:40 PM — Sábado de 10:00 AM a 10:40 AM y de 1:00 PM a 1:40 PM — Domingo cerrado
 
 SERVICIOS QUE OFRECEMOS:
 - Limpiezas dentales
@@ -403,7 +403,7 @@ def calcular_slots(fecha: str, duracion: int, doctor_id: int = None,
     for inicio_str, fin_str in rangos:
         cursor_time = datetime.strptime(f"{fecha} {inicio_str}", "%Y-%m-%d %H:%M")
         fin_rango   = datetime.strptime(f"{fecha} {fin_str}",    "%Y-%m-%d %H:%M")
-        while cursor_time + timedelta(minutes=duracion) <= fin_rango:
+        while cursor_time < fin_rango:
             fin_slot = cursor_time + timedelta(minutes=duracion)
             if es_hoy and cursor_time <= ahora_mexico:
                 cursor_time += timedelta(minutes=30)
