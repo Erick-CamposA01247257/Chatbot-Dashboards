@@ -211,25 +211,25 @@
         .cita-card:last-child { margin-bottom: 0; }
 
         .cita-card-header {
-            display: flex; align-items: flex-start;
-            justify-content: space-between; margin-bottom: 6px;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; margin-bottom: 6px; gap: 4px;
         }
 
         .cita-paciente {
             font-size: 15px; font-weight: 600;
-            color: var(--texto); line-height: 1.2;
+            color: var(--texto); line-height: 1.2; text-align: center;
         }
 
         .cita-hora-badge {
             background: var(--azul-light); color: var(--azul-dark);
             border-radius: 6px; padding: 3px 8px;
             font-size: 12px; font-weight: 500;
-            flex-shrink: 0; margin-left: 8px;
+            margin-left: 0;
         }
 
         .cita-detalle {
             font-size: 12px; color: var(--texto-mid);
-            display: flex; align-items: center; gap: 8px;
+            display: flex; align-items: center; gap: 8px; justify-content: center;
         }
 
         .cita-detalle-sep {
@@ -1311,12 +1311,13 @@
             return citasDelDia.filter(o => strToMin(o.hora) < e && strToMin(o.hora) + o.duracion > s).length
         }
 
-        // Citas — posicionadas con timeToOffset y columnas laterales
+        // Citas — posicionadas con timeToOffset en grid fijo de 3 columnas
+        const MAX_COLS = 3
+        const colWFixed = (availW - GAP * (MAX_COLS - 1)) / MAX_COLS
         citasDelDia.forEach(cita => {
-            const col     = citaCol.get(cita.id) || 0
-            const numCols = concurrentCount(cita)
-            const colW    = (availW - GAP * (numCols - 1)) / numCols
-            const left    = LABEL_W + col * (colW + GAP)
+            const col  = citaCol.get(cita.id) || 0
+            const colW = colWFixed
+            const left = LABEL_W + col * (colW + GAP)
             const top     = timeToOffset(cita.hora, segmentos)
             const height  = Math.max((cita.duracion / 60) * ALTURA_HORA - 4, 28)
             const bloque  = document.createElement("div")
@@ -1334,6 +1335,34 @@
                 <div class="grid-bloque-detalle" style="${!claseGrid ? 'color:#1E66B5cc' : ''}">${convertir12h(cita.hora)} · ${escaparHTML(cita.servicio)}</div>`
             wrapper.appendChild(bloque)
         })
+
+        // Espacios disponibles — 3 columnas fijas por slot de hora
+        if (!diaCompletoSingle) {
+            const MAX_COLS = 3
+            const colWFixed = (availW - GAP * (MAX_COLS - 1)) / MAX_COLS
+            segmentos.forEach(seg => {
+                const horaStr = seg[0]  // "10:00" o "17:00"
+                const top = timeToOffset(horaStr, segmentos)
+                const segH = Math.max((strToMin(seg[1]) - strToMin(seg[0])) / 60 * ALTURA_HORA - 4, 60)
+                const citasEnSlot = citasDelDia.filter(c => c.hora === horaStr)
+                const colsOcupadas = new Set(citasEnSlot.map((_, i) => i))
+                for (let col = 0; col < MAX_COLS; col++) {
+                    if (colsOcupadas.has(col)) continue
+                    const left = LABEL_W + col * (colWFixed + GAP)
+                    const ph = document.createElement("div")
+                    ph.style.cssText = `position:absolute; top:${top}px; height:${segH}px; left:${left}px; width:${colWFixed}px;
+                        border:2px dashed var(--borde); border-radius:8px; display:flex;
+                        align-items:center; justify-content:center; cursor:pointer;
+                        font-size:11px; font-weight:500; color:var(--texto-muted);
+                        transition:border-color .15s, background .15s;`
+                    ph.textContent = "Espacio Disponible"
+                    ph.onmouseenter = () => { ph.style.borderColor = "var(--azul)"; ph.style.background = "#F0F6FF"; ph.style.color = "var(--azul)" }
+                    ph.onmouseleave = () => { ph.style.borderColor = ""; ph.style.background = ""; ph.style.color = "var(--texto-muted)" }
+                    ph.onclick = e => { e.stopPropagation(); abrirNuevaCita({ fecha: fechaSeleccionada, hora: horaStr }) }
+                    wrapper.appendChild(ph)
+                }
+            })
+        }
 
         // Bloqueos de hora — también posicionados con timeToOffset
         todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio).forEach(b => {
