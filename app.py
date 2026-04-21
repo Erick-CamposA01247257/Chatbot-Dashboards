@@ -506,14 +506,14 @@ def notificar_doctora(nombre: str, servicio: str, fecha: str, hora: str):
 
 def enviar_recordatorios():
     ahora_mexico = datetime.now() - timedelta(hours=6)
-    manana = (ahora_mexico + timedelta(days=1)).strftime("%Y-%m-%d")
+    hoy = ahora_mexico.strftime("%Y-%m-%d")
     try:
         conn = get_conn()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT nombre, servicio, fecha, hora, telefono, cancelacion_token
             FROM citas WHERE fecha = %s AND confirmada = TRUE AND telefono != ''
-        """, (manana,))
+        """, (hoy,))
         citas = cursor.fetchall()
         conn.close()
     except Exception:
@@ -525,7 +525,7 @@ def enviar_recordatorios():
         hora_leg  = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
         enviar_whatsapp(telefono, (
             f"⏰ Recordatorio Dentales\n\n"
-            f"Hola {nombre}, le recordamos que mañana tiene una cita:\n\n"
+            f"Hola {nombre}, le recordamos que hoy tiene una cita:\n\n"
             f"📅 Fecha: {fecha_leg}\n"
             f"⏰ Hora: {hora_leg}\n"
             f"🦷 Servicio: {servicio}\n\n"
@@ -610,7 +610,7 @@ def enviar_backup_semanal():
 init_db()
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(enviar_recordatorios,         "cron", hour=14, minute=0)
+scheduler.add_job(enviar_recordatorios,         "cron", hour=15, minute=0)  # 9 AM México
 scheduler.add_job(enviar_recordatorio_irregulares, "cron", hour=13, minute=0)
 scheduler.add_job(enviar_backup_semanal,         "cron", day_of_week="mon", hour=14, minute=30)
 scheduler.start()
