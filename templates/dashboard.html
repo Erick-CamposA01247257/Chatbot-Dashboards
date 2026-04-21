@@ -197,7 +197,7 @@
 
         .timeline-linea { width: 1px; flex: 1; background: var(--borde); margin-top: 4px; }
 
-        .timeline-content { flex: 1; padding-bottom: 20px; }
+        .timeline-content { flex: 1; padding-bottom: 20px; display: flex; gap: 10px; align-items: stretch; }
 
         .cita-card {
             background: var(--surface);
@@ -238,6 +238,12 @@
         }
 
         .hora-vacia { color: var(--texto-muted); font-size: 12px; font-weight: 300; padding: 4px 0; }
+        .slot-espacio { flex: 1; min-height: 80px; border: 2px dashed var(--borde); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--texto-muted); font-size: 12px; font-weight: 500; letter-spacing: 0.3px;
+            cursor: pointer; transition: border-color .15s, background .15s; }
+        .slot-espacio:hover { border-color: var(--azul); background: #F0F6FF; color: var(--azul); }
+        .cita-card { flex: 1; }
 
         /* ── Panel derecho ── */
         .panel-cal {
@@ -1140,30 +1146,41 @@
                     </div>
                     <div class="timeline-content">
                         ${bloqs ? bloqs.map(b => `
-                            <div class="cita-card bloqueado" style="display:flex;justify-content:space-between;align-items:center">
+                            <div class="cita-card bloqueado" style="flex:1;display:flex;justify-content:space-between;align-items:center">
                                 <div>
                                     <div class="cita-card-header"><div class="cita-paciente">🚫 Bloqueado</div><div class="cita-hora-badge">${b.hora_inicio} – ${b.hora_fin}</div></div>
                                     ${b.motivo ? `<div class="cita-detalle">${escaparHTML(b.motivo)}</div>` : ''}
                                 </div>
                                 <button onclick="eliminarBloqueo(${b.id})" style="background:none;border:1px solid #FECACA;border-radius:7px;padding:5px 10px;font-size:11px;color:#DC2626;cursor:pointer;flex-shrink:0;margin-left:8px">Quitar</button>
-                            </div>`).join("") : ''}
-                        ${citas ? citas.map(c => {
-                            const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
-                            return `
-                            <div class="cita-card ${clase}" id="card-${c.id}">
-                                <div class="cita-card-header" style="display:flex;align-items:center">
-                                    ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
-                                    <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
-                                        <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
-                                        <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
-                                    </div>
-                                </div>
-                                <div class="cita-detalle" onclick="abrirModal(${c.id})">
-                                    <span>${escaparHTML(c.servicio)}</span>
-                                    <div class="cita-detalle-sep"></div>
-                                    <span>${c.duracion} min</span>
-                                </div>
-                            </div>`}).join("") : (!bloqs ? `<div class="hora-vacia">Disponible</div>` : '')}
+                            </div>`).join("") : (() => {
+                            const horaStr = `${String(h).padStart(2,"0")}:00`
+                            const citasSlot = citas || []
+                            const espacios = []
+                            for (let i = 0; i < 3; i++) {
+                                if (citasSlot[i]) {
+                                    const c = citasSlot[i]
+                                    const clase = c.no_show ? 'no-show' : c.confirmada ? 'confirmada' : c.irregular ? 'irregular' : ''
+                                    espacios.push(`
+                                    <div class="cita-card ${clase}" id="card-${c.id}">
+                                        <div class="cita-card-header" style="display:flex;align-items:center">
+                                            ${!c.confirmada && !c.no_show ? `<div class="cita-check" id="check-${c.id}" onclick="toggleCheck(event,${c.id})"></div>` : ''}
+                                            <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between" onclick="abrirModal(${c.id})">
+                                                <div class="cita-paciente">${escaparHTML(c.nombre)}${c.irregular && !c.no_show ? ' <span style="font-size:11px">⚠️</span>' : ''}</div>
+                                                <div class="cita-hora-badge">${convertir12h(c.hora)}</div>
+                                            </div>
+                                        </div>
+                                        <div class="cita-detalle" onclick="abrirModal(${c.id})">
+                                            <span>${escaparHTML(c.servicio)}</span>
+                                            <div class="cita-detalle-sep"></div>
+                                            <span>${c.duracion} min</span>
+                                        </div>
+                                    </div>`)
+                                } else {
+                                    espacios.push(`<div class="slot-espacio" onclick="abrirNuevaCita({fecha:'${fechaSeleccionada}',hora:'${horaStr}'})">Espacio Disponible</div>`)
+                                }
+                            }
+                            return espacios.join("")
+                        })()}
                     </div>`
                 timeline.appendChild(slot)
             }
