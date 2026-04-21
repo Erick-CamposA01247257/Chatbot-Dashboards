@@ -1243,22 +1243,10 @@
         // Filas de horas por segmento, con separador de descanso entre ellos
         segmentos.forEach((seg, segIdx) => {
             if (segIdx > 0) {
-                const breakStart = convertir12h(segmentos[segIdx-1][1])
-                const breakEnd   = convertir12h(seg[0])
-                const sep = document.createElement("div")
-                sep.style.cssText = `height:${BREAK_HEIGHT}px; display:flex; align-items:center;
-                    justify-content:center; background:#FAFBFC;
-                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;`
-                sep.onclick = e => e.stopPropagation()
-                sep.innerHTML = `
-                    <div style="display:inline-flex;align-items:center;gap:5px;background:white;
-                        border:1px solid #E2E8F0;border-radius:20px;padding:3px 12px 3px 9px;
-                        font-size:10px;color:#94A3B8;font-weight:500;letter-spacing:.1px;
-                        box-shadow:0 1px 2px rgba(0,0,0,.04)">
-                        <span style="font-size:11px">☕</span>
-                        <span>Descanso · ${breakStart} – ${breakEnd}</span>
-                    </div>`
-                wrapper.appendChild(sep)
+                const gap = document.createElement("div")
+                gap.style.cssText = `height:${BREAK_HEIGHT}px;`
+                gap.onclick = e => e.stopPropagation()
+                wrapper.appendChild(gap)
             }
             const startH = Math.floor(strToMin(seg[0]) / 60)
             const endH   = Math.ceil(strToMin(seg[1]) / 60)
