@@ -176,7 +176,7 @@
         /* ── Timeline ── */
         .timeline { display: flex; flex-direction: column; }
 
-        .timeline-slot { display: flex; gap: 14px; min-height: 140px; }
+        .timeline-slot { display: flex; gap: 14px; min-height: 220px; }
 
         .timeline-hora-col { width: 48px; flex-shrink: 0; padding-top: 4px; }
 
@@ -1374,10 +1374,26 @@
     // ── Nueva cita ──
     let horaPreseleccionada = null
 
+    function snapToSlotValido(hora, segmentos) {
+        const tMin = strToMin(hora)
+        let mejorSlot = null, mejorDiff = Infinity
+        for (const [inicio, fin] of segmentos) {
+            for (let m = strToMin(inicio); m < strToMin(fin); m += 30) {
+                const diff = Math.abs(tMin - m)
+                if (diff < mejorDiff) { mejorDiff = diff; mejorSlot = m }
+            }
+        }
+        if (mejorSlot === null) return hora
+        const h = Math.floor(mejorSlot / 60)
+        const m = mejorSlot % 60
+        return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`
+    }
+
     function abrirNuevaCitaEnSlot(e, fecha, doctorId = null) {
         if (e.target.closest(".grid-bloque")) return
         const offsetY = e.clientY - e.currentTarget.getBoundingClientRect().top
-        const hora = offsetToTime(offsetY, getSegmentos(fecha))
+        const horaRaw = offsetToTime(offsetY, getSegmentos(fecha))
+        const hora = snapToSlotValido(horaRaw, getSegmentos(fecha))
         abrirNuevaCita({ fecha, hora, doctorId })
     }
 
