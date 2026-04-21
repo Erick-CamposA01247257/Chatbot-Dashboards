@@ -461,18 +461,23 @@ def registrar_auditoria(usuario: str, rol: str, accion: str, detalle: str):
 # ============================================
 
 def enviar_whatsapp(telefono: str, mensaje: str):
-    try:
-        token = os.environ.get("WHAPI_TOKEN")
-        if not token or not telefono:
+    import time
+    token = os.environ.get("WHAPI_TOKEN")
+    if not token or not telefono:
+        return
+    for intento in range(1, 4):
+        try:
+            requests.post(
+                "https://gate.whapi.cloud/messages/text",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"to": f"521{telefono}@s.whatsapp.net", "body": mensaje},
+                timeout=20
+            )
             return
-        requests.post(
-            "https://gate.whapi.cloud/messages/text",
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            json={"to": f"521{telefono}@s.whatsapp.net", "body": mensaje},
-            timeout=30
-        )
-    except Exception as e:
-        print(f"[WHAPI ERROR] {e}")
+        except Exception as e:
+            print(f"[WHAPI ERROR] intento {intento}/3: {e}")
+            if intento < 3:
+                time.sleep(5)
 
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
     fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
