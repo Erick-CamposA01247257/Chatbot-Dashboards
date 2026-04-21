@@ -873,7 +873,7 @@ async def api_agendar_dashboard(cita: CitaRequest, request: Request, background_
         return JSONResponse(status_code=403, content={"error": "Acceso denegado"})
     doctor_id = get_doctor_id()
     duracion  = get_duracion(cita.servicio)
-    slots     = calcular_slots(cita.fecha, duracion, doctor_id)
+    slots     = calcular_slots(cita.fecha, duracion, doctor_id, bypass_tiempo=True)
     if cita.hora not in slots:
         return JSONResponse(
             status_code=409,
