@@ -1248,7 +1248,8 @@
                 const sep = document.createElement("div")
                 sep.style.cssText = `height:${BREAK_HEIGHT}px; display:flex; align-items:center;
                     justify-content:center; background:#FAFBFC;
-                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;`
+                    border-top:1px dashed #E2E8F0; border-bottom:1px dashed #E2E8F0;
+                    pointer-events:none;`
                 sep.innerHTML = `
                     <div style="display:inline-flex;align-items:center;gap:5px;background:white;
                         border:1px solid #E2E8F0;border-radius:20px;padding:3px 12px 3px 9px;
@@ -1356,9 +1357,7 @@
                         font-size:11px; font-weight:400; color:var(--texto-muted);
                         transition:background .15s, color .15s;`
                     ph.textContent = "Espacio Disponible"
-                    ph.onmouseenter = () => { ph.style.borderColor = "var(--azul)"; ph.style.background = "#F0F6FF"; ph.style.color = "var(--azul)" }
-                    ph.onmouseleave = () => { ph.style.borderColor = ""; ph.style.background = ""; ph.style.color = "var(--texto-muted)" }
-                    ph.onclick = e => { e.stopPropagation(); abrirNuevaCita({ fecha: fechaSeleccionada, hora: horaStr }) }
+                    ph.style.pointerEvents = "none"
                     wrapper.appendChild(ph)
                 }
             })
