@@ -1438,14 +1438,8 @@
 
         const selectServicio = document.getElementById("nc-servicio")
         const servicios = [
-            { nombre: "Limpiezas dentales", dur: 30 },
-            { nombre: "Resinas/Empastes", dur: 60 },
-            { nombre: "Extracciones", dur: 45 },
-            { nombre: "Coronas", dur: 90 },
-            { nombre: "Endodoncias", dur: 90 },
-            { nombre: "Implantes", dur: 90 },
-            { nombre: "Odontopediatría", dur: 30 },
-            { nombre: "Muelas del juicio/Terceros Molares", dur: 60 },
+            { nombre: "Limpieza dental", dur: 30 },
+            { nombre: "Revisión general", dur: 30 },
         ]
         selectServicio.innerHTML = `<option value="">Seleccione un servicio</option>` +
             servicios.map(s => `<option value="${s.nombre}">${s.nombre} (${s.dur} min)</option>`).join("")
