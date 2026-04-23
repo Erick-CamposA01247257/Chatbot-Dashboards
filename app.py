@@ -78,13 +78,7 @@ DOCTOR_PHONE       = os.environ.get("DOCTOR_PHONE") or ""
 
 DURACIONES = {
     "limpieza": 30, "limpieza dental": 30, "limpiezas dentales": 30,
-    "resina": 60, "resinas": 60, "empaste": 60, "empastes": 60, "resinas/empastes": 60,
-    "extracción": 45, "extraccion": 45, "extracciones": 45,
-    "corona": 90, "coronas": 90,
-    "endodoncia": 90, "endodoncias": 90,
-    "implante": 90, "implantes": 90,
-    "odontopediatría": 30, "odontopediatria": 30,
-    "muela del juicio": 60, "muelas del juicio": 60, "tercer molar": 60, "terceros molares": 60, "muelas del juicio/terceros molares": 60,
+    "revisión general": 30, "revision general": 30, "revisión general / diagnóstico": 30,
 }
 
 DURACION_DEFAULT = 60
@@ -106,14 +100,8 @@ HORARIO = {
 
 # Servicios canónicos (nombre para mostrar, duración) — orden del dropdown
 SERVICIOS_DISPLAY = [
-    ("Limpiezas dentales", 30),
-    ("Resinas/Empastes", 60),
-    ("Extracciones", 45),
-    ("Coronas", 90),
-    ("Endodoncias", 90),
-    ("Implantes", 90),
-    ("Odontopediatría", 30),
-    ("Muelas del juicio/Terceros Molares", 60),
+    ("Limpieza dental", 30),
+    ("Revisión general", 30),
 ]
 
 SISTEMA_DENTALES = """Eres el asistente virtual de Dentales, un consultorio dental en Guadalupe, Nuevo León.
@@ -125,14 +113,8 @@ INFORMACIÓN DEL CONSULTORIO:
 - Horario: Lunes a Viernes de 10:00 AM a 10:40 AM y de 5:00 PM a 5:40 PM — Sábado de 10:00 AM a 10:40 AM y de 1:00 PM a 1:40 PM — Domingo cerrado
 
 SERVICIOS QUE OFRECEMOS:
-- Limpiezas dentales
-- Resinas/Empastes
-- Extracciones
-- Coronas
-- Endodoncias
-- Implantes
-- Odontopediatría
-- Muelas del juicio/Terceros Molares
+- Limpieza dental
+- Revisión general
 
 PRECIOS:
 - Los precios varían según el caso de cada paciente
