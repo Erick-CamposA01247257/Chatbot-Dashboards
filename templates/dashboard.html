@@ -1274,6 +1274,9 @@
 
         grid.appendChild(wrapper)
 
+        // Diferir el posicionamiento hasta que el browser haya calculado el ancho real del wrapper
+        requestAnimationFrame(() => {
+
         // ── Layout de columnas para citas simultáneas ──
         const LABEL_W = 46
         const GAP = 3
@@ -1348,6 +1351,8 @@
                 }
             })
         }
+
+        }) // fin requestAnimationFrame
 
         // Bloqueos de hora — también posicionados con timeToOffset
         todosLosBloqueos.filter(b => b.fecha === fechaSeleccionada && b.hora_inicio).forEach(b => {
