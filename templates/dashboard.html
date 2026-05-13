@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dentales — Panel de Citas</title>
+    <title>{{CLINIC_NAME}} — Panel de Citas</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -707,7 +707,7 @@
             <div class="logo-dot">
                 <svg viewBox="0 0 24 24"><path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/></svg>
             </div>
-            <span class="logo-nombre">Dentales</span>
+            <span class="logo-nombre">{{CLINIC_NAME}}</span>
         </div>
         <div class="header-divider"></div>
         <div class="header-fecha" id="header-fecha"></div>
@@ -1962,7 +1962,7 @@
             .owner-logout:hover { color:#475569; }
         </style>
         <div class="owner-card">
-            <div class="owner-logo">Dentales</div>
+            <div class="owner-logo">{{CLINIC_NAME}}</div>
             <div class="owner-icon">📊</div>
             <div class="owner-title">Reporte de citas</div>
             <div class="owner-desc">Descarga el historial completo de citas en formato Excel.<br>Incluye resumen de confirmadas, pendientes y no-shows.</div>

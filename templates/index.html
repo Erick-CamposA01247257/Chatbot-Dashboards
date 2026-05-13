@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dentales — Asistente Virtual</title>
+    <title>{{CLINIC_NAME}} — Asistente Virtual</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -558,7 +558,7 @@
         </svg>
     </div>
     <div class="header-info">
-        <h1>Dental<span style="color:#7ED957">es</span></h1>
+        <h1>{{CLINIC_NAME}}</h1>
         <div class="header-sub">
             <div class="status-dot"></div>
             <span>Asistente virtual · En línea</span>
@@ -573,14 +573,14 @@
                 <path d="M12 2C8.5 2 7 4.5 7 7c0 1.5.5 3 1 4.5C8.5 13 9 14.5 9 16c0 2 .5 4 3 4s3-2 3-4c0-1.5.5-3 1-4.5C16.5 10 17 8.5 17 7c0-2.5-1.5-5-5-5z"/>
             </svg>
         </div>
-        <strong>Bienvenido a Dentales</strong>
+        <strong>Bienvenido a {{CLINIC_NAME}}</strong>
         <div class="bienvenida-divider"></div>
         <p>Consultorio dental en Ciudad de México, CDMX</p>
         <p>Lun–Vie · 10:00 AM y 5:00 PM<br>Sábado · 10:00 AM y 1:00 PM<br>Domingo · Cerrado</p>
     </div>
 
     <div class="msg msg-bot">
-        ¡Bienvenido al chat virtual de Dentales! Puede agendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación.
+        ¡Bienvenido al chat virtual de {{CLINIC_NAME}}! Puede agendar su cita en el botón inferior o hacerme cualquier pregunta sobre nuestros servicios, horarios o ubicación.
         <div class="msg-time">ahora</div>
     </div>
 
@@ -990,7 +990,7 @@ async function confirmarCita() {
         const fechaLegible = new Date(fechaConfirmada + "T12:00:00").toLocaleDateString("es-MX", {
             weekday: "long", year: "numeric", month: "long", day: "numeric"
         })
-        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en Dentales!`, "bot")
+        agregarMensaje(`Su cita ha sido registrada exitosamente.\n\n**Nombre:** ${nombre}\n**Servicio:** ${estado.servicio}\n**Fecha:** ${fechaLegible}\n**Hora:** ${convertir12h(estado.hora)}\n\nLa doctora le confirmará próximamente. ¡Le esperamos en {{CLINIC_NAME}}!`, "bot")
 
         // Botón para agendar a otro familiar
         const chat = document.getElementById("chat")

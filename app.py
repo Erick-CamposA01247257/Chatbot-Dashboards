@@ -75,6 +75,7 @@ OWNER_USER         = os.environ.get("OWNER_USER") or ""
 OWNER_PASSWORD     = os.environ.get("OWNER_PASSWORD") or ""
 SESSION_SECRET     = os.environ.get("SESSION_SECRET") or ""
 DOCTOR_PHONE       = os.environ.get("DOCTOR_PHONE") or ""
+SECURE_COOKIES     = os.environ.get("SECURE_COOKIES", "true").lower() == "true"
 
 CLINIC_NAME    = os.environ.get("CLINIC_NAME",    "SmileCare Dental")
 CLINIC_CITY    = os.environ.get("CLINIC_CITY",    "Ciudad de México, CDMX")
@@ -662,12 +663,12 @@ async def health_head():
 @app.get("/", response_class=HTMLResponse)
 async def index():
     with open("templates/index.html", "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read().replace("{{CLINIC_NAME}}", CLINIC_NAME)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page():
     with open("templates/login.html", "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read().replace("{{CLINIC_NAME}}", CLINIC_NAME)
 
 @app.post("/api/login")
 @limiter.limit("10/minute")
@@ -678,21 +679,21 @@ async def api_login(request: Request, datos: LoginRequest):
     if datos.usuario == DASHBOARD_USER and datos.password == DASHBOARD_PASSWORD:
         sessions[session_token] = {"username": DASHBOARD_USER, "rol": "admin", "doctor_id": None}
         resp = JSONResponse(content={"status": "ok", "rol": "admin"})
-        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
+        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=SECURE_COOKIES)
         return resp
 
     # Owner (solo exportar)
     if OWNER_USER and datos.usuario == OWNER_USER and datos.password == OWNER_PASSWORD:
         sessions[session_token] = {"username": OWNER_USER, "rol": "owner", "doctor_id": None}
         resp = JSONResponse(content={"status": "ok", "rol": "owner"})
-        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
+        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=SECURE_COOKIES)
         return resp
 
     # Asistente (env var)
     if ASSISTANT_USER and datos.usuario == ASSISTANT_USER and datos.password == ASSISTANT_PASSWORD:
         sessions[session_token] = {"username": ASSISTANT_USER, "rol": "asistente", "doctor_id": None}
         resp = JSONResponse(content={"status": "ok", "rol": "asistente"})
-        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
+        resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=SECURE_COOKIES)
         return resp
 
     # Doctor (DB)
@@ -712,7 +713,7 @@ async def api_login(request: Request, datos: LoginRequest):
                 "doctor_id": doctor[0], "doctor_nombre": doctor[1]
             }
             resp = JSONResponse(content={"status": "ok", "rol": "doctor"})
-            resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=True)
+            resp.set_cookie(key="session_token", value=session_token, httponly=True, max_age=43200, samesite="strict", secure=SECURE_COOKIES)
             return resp
     except Exception as e:
         print(f"[Login Error] {e}")
@@ -740,14 +741,14 @@ async def panel_citas(request: Request):
     if not verificar_sesion(request):
         return RedirectResponse(url="/login")
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read().replace("{{CLINIC_NAME}}", CLINIC_NAME)
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def panel_dashboard(request: Request):
     if not verificar_sesion(request):
         return RedirectResponse(url="/login")
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read().replace("{{CLINIC_NAME}}", CLINIC_NAME)
 
 @app.get("/api/me")
 async def api_me(request: Request):
@@ -1220,6 +1221,7 @@ async def cancelar_page(token: str):
     hora_leg  = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
     with open("templates/cancelar.html", "r", encoding="utf-8") as f:
         html = f.read()
+    html = html.replace("{{CLINIC_NAME}}", CLINIC_NAME)
     html = html.replace("{{nombre}}", html_escape(nombre)).replace("{{servicio}}", html_escape(servicio))
     html = html.replace("{{fecha}}", html_escape(fecha_leg)).replace("{{hora}}", html_escape(hora_leg))
     html = html.replace("{{token}}", html_escape(token))
