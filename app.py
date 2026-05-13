@@ -76,6 +76,11 @@ OWNER_PASSWORD     = os.environ.get("OWNER_PASSWORD") or ""
 SESSION_SECRET     = os.environ.get("SESSION_SECRET") or ""
 DOCTOR_PHONE       = os.environ.get("DOCTOR_PHONE") or ""
 
+CLINIC_NAME    = os.environ.get("CLINIC_NAME",    "SmileCare Dental")
+CLINIC_CITY    = os.environ.get("CLINIC_CITY",    "Ciudad de México, CDMX")
+CLINIC_ADDRESS = os.environ.get("CLINIC_ADDRESS", "Av. Insurgentes Sur 1457, Col. Insurgentes Mixcoac, 03920 CDMX")
+CLINIC_PHONE   = os.environ.get("CLINIC_PHONE",   "55 1234 5678")
+
 DURACIONES = {
     "limpieza": 30, "limpieza dental": 30, "limpiezas dentales": 30,
     "revisión general": 30, "revision general": 30, "revisión general / diagnóstico": 30,
@@ -104,12 +109,12 @@ SERVICIOS_DISPLAY = [
     ("Revisión general", 30),
 ]
 
-SISTEMA_DENTALES = """Eres el asistente virtual de Dentales, un consultorio dental en Guadalupe, Nuevo León.
+SISTEMA_DENTALES = f"""Eres el asistente virtual de {CLINIC_NAME}, un consultorio dental en {CLINIC_CITY}.
 
 INFORMACIÓN DEL CONSULTORIO:
-- Nombre: Dentales
-- Dirección: Paseo de las Américas 2423-A, Contry La Silla 7o Sector, 67173 Guadalupe, N.L.
-- Teléfono: 81 8459 3119
+- Nombre: {CLINIC_NAME}
+- Dirección: {CLINIC_ADDRESS}
+- Teléfono: {CLINIC_PHONE}
 - Horario: Lunes a Viernes de 10:00 AM a 10:40 AM y de 5:00 PM a 5:40 PM — Sábado de 10:00 AM a 10:40 AM y de 1:00 PM a 1:40 PM — Domingo cerrado
 
 SERVICIOS QUE OFRECEMOS:
@@ -128,7 +133,7 @@ CÓMO AGENDAR CITA:
 INSTRUCCIONES DE COMPORTAMIENTO:
 - Responde siempre en español, de forma amable y profesional
 - Si preguntan por precios exactos, di que varían según el caso y ofrece agendar una cita
-- Si hay una emergencia dental, indica que llamen directamente al 81 8459 3119
+- Si hay una emergencia dental, indica que llamen directamente al {CLINIC_PHONE}
 - Nunca inventes información que no esté en este documento
 - Tu propósito es agendar citas, siempre deberías referir a agendar una cita
 - No des información médica, solo agenda citas
@@ -465,9 +470,9 @@ def enviar_whatsapp(telefono: str, mensaje: str):
 def enviar_whatsapp_confirmacion(telefono: str, nombre: str, servicio: str, fecha: str, hora: str, token: str):
     fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
     hora_leg  = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
-    base_url  = os.environ.get("BASE_URL", "https://mosadent.up.railway.app")
+    base_url  = os.environ.get("BASE_URL", "http://localhost:8000")
     enviar_whatsapp(telefono, (
-        f"✅ Hola {nombre}, su cita en Dentales ha sido *confirmada*.\n\n"
+        f"✅ Hola {nombre}, su cita en {CLINIC_NAME} ha sido *confirmada*.\n\n"
         f"📅 Fecha: {fecha_leg}\n"
         f"⏰ Hora: {hora_leg}\n"
         f"🦷 Servicio: {servicio}\n\n"
@@ -501,13 +506,13 @@ def enviar_recordatorios():
         conn.close()
     except Exception:
         return
-    base_url = os.environ.get("BASE_URL", "https://mosadent.up.railway.app")
+    base_url = os.environ.get("BASE_URL", "http://localhost:8000")
     for cita in citas:
         nombre, servicio, fecha, hora, telefono, token = cita
         fecha_leg = datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y")
         hora_leg  = datetime.strptime(hora, "%H:%M").strftime("%I:%M %p").lstrip("0")
         enviar_whatsapp(telefono, (
-            f"⏰ Recordatorio Dentales\n\n"
+            f"⏰ Recordatorio {CLINIC_NAME}\n\n"
             f"Hola {nombre}, le recordamos que hoy tiene una cita:\n\n"
             f"📅 Fecha: {fecha_leg}\n"
             f"⏰ Hora: {hora_leg}\n"

@@ -3,3 +3,6 @@ venv/
 __pycache__/
 *.pyc
 citas.db
+CLAUDE.md
+MANUAL_DE_USO.html
+.DS_Store
