@@ -1,4 +1,4 @@
-# Dentales — AI-Powered Dental Appointment System
+# AI-Powered Dental Appointment System
 
 A full-stack web application that lets dental clinics manage appointments through a conversational AI chat and a protected admin dashboard. Built with FastAPI, PostgreSQL, and the Anthropic Claude API — deployed on Railway.
 
