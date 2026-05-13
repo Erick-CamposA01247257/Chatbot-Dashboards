@@ -59,7 +59,7 @@ Dentales/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Erick-CamposA01247257/Dentales.git
+git clone https://github.com/Erick-CamposA01247257/Chatbot-Dashboards.git
 cd Dentales
 python3 -m venv venv
 source venv/bin/activate
