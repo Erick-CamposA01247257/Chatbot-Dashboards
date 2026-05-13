@@ -121,4 +121,4 @@ All clinic-specific settings and secrets are read from environment variables. Co
 
 ## License
 
-MIT
+© 2025 Erick Campos. All Rights Reserved.
